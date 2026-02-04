@@ -1,65 +1,63 @@
 # Add project specific ProGuard rules here.
 
-# Keep data models for Firebase
--keep class com.payload.jansiix0ne.data.model.** { *; }
+# Remove logging
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+    public static *** w(...);
+    public static *** e(...);
+    public static boolean isLoggable(java.lang.String, int);
+}
+
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
 # Keep Firebase classes
 -keep class com.google.firebase.** { *; }
 -keep class com.google.android.gms.** { *; }
+-dontwarn com.google.firebase.**
+-dontwarn com.google.android.gms.**
+
+# Keep Kotlin
+-keep class kotlin.** { *; }
+-keep class kotlin.Metadata { *; }
+-dontwarn kotlin.**
+-keepclassmembers class **$WhenMappings {
+    <fields>;
+}
+-keepclassmembers class kotlin.Metadata {
+    public <methods>;
+}
 
 # Keep Kotlin coroutines
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
 -keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
--keepclassmembers class kotlinx.coroutines.** {
+-keepclassmembers class kotlinx.** {
     volatile <fields>;
 }
 
-# Keep WorkManager
--keep class androidx.work.** { *; }
--dontwarn androidx.work.**
+# Keep app classes
+-keep class com.payload.jansiix0ne.** { *; }
+-keepclassmembers class com.payload.jansiix0ne.** { *; }
 
-# Koin removed - no longer used
-
-# Keep Compose (minimal)
--keep class androidx.compose.runtime.** { *; }
--keep class androidx.compose.ui.** { *; }
--keep class androidx.compose.foundation.** { *; }
--keep class androidx.compose.material3.** { *; }
--dontwarn androidx.compose.**
-
-# Keep Lifecycle (minimal)
--keep class androidx.lifecycle.LifecycleOwner { *; }
--keep class androidx.lifecycle.Lifecycle { *; }
--keep class androidx.lifecycle.LifecycleObserver { *; }
--keepclassmembers class * implements androidx.lifecycle.LifecycleObserver {
-    <methods>;
+# Keep R classes
+-keepclassmembers class **.R$* {
+    public static <fields>;
 }
 
-# Keep DataStore
--keep class androidx.datastore.** { *; }
-
-# Remove logging in release and debug
--assumenosideeffects class android.util.Log {
-    public static boolean isLoggable(java.lang.String, int);
-    public static int v(...);
-    public static int i(...);
-    public static int w(...);
-    public static int d(...);
-    public static int e(...);
+-keep class **.R
+-keep class **.R$* {
+    *;
 }
 
-# Remove debug info
--assumenosideeffects class kotlin.jvm.internal.Intrinsics {
-    static void checkParameterIsNotNull(java.lang.Object, java.lang.String);
-}
+-keepattributes Signature
+-keepattributes Exceptions
+-keepattributes *Annotation*
+-keepattributes EnclosingMethod
+-keepattributes InnerClasses
 
-# Optimize Kotlin
--keepclassmembers class kotlin.Metadata {
-    public <methods>;
-}
--dontwarn kotlin.**
--dontwarn kotlinx.coroutines.**
-
-# Preserve line numbers for debugging
--keepattributes SourceFile,LineNumberTable
--renamesourcefileattribute SourceFile
+-keep public class * extends android.content.Context
+-keep public class * extends android.app.Activity
+-keep public class * extends android.app.Service
+-keep public class * extends android.content.BroadcastReceiver
