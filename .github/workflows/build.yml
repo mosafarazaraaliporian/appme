@@ -25,11 +25,15 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
       
-    - name: Build with Gradle
-      run: ./gradlew assembleDebug
+    - name: Build Debug APK (fast)
+      run: ./gradlew assembleDebug --parallel --max-workers=4 -x test -x lint --build-cache
+      env:
+        GRADLE_OPTS: "-Xmx2048m -XX:MaxMetaspaceSize=512m"
       
-    - name: Build Release APK
-      run: ./gradlew assembleRelease
+    - name: Build Release APK (optimized)
+      run: ./gradlew assembleRelease --parallel --max-workers=4 -x test -x lint --build-cache
+      env:
+        GRADLE_OPTS: "-Xmx2048m -XX:MaxMetaspaceSize=512m"
       
     - name: List APK files
       run: |
