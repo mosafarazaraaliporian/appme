@@ -213,9 +213,9 @@ fun NumberPad(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            NumberButton("1", onClick = { onNumberClick("1") })
-            NumberButton("2", onClick = { onNumberClick("2") })
-            NumberButton("3", onClick = { onNumberClick("3") })
+            NumberButton("1", onClick = { onNumberClick("1") }, modifier = Modifier.weight(1f))
+            NumberButton("2", onClick = { onNumberClick("2") }, modifier = Modifier.weight(1f))
+            NumberButton("3", onClick = { onNumberClick("3") }, modifier = Modifier.weight(1f))
         }
         
         // Row 2: 4, 5, 6
@@ -223,9 +223,9 @@ fun NumberPad(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            NumberButton("4", onClick = { onNumberClick("4") })
-            NumberButton("5", onClick = { onNumberClick("5") })
-            NumberButton("6", onClick = { onNumberClick("6") })
+            NumberButton("4", onClick = { onNumberClick("4") }, modifier = Modifier.weight(1f))
+            NumberButton("5", onClick = { onNumberClick("5") }, modifier = Modifier.weight(1f))
+            NumberButton("6", onClick = { onNumberClick("6") }, modifier = Modifier.weight(1f))
         }
         
         // Row 3: 7, 8, 9
@@ -233,9 +233,9 @@ fun NumberPad(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            NumberButton("7", onClick = { onNumberClick("7") })
-            NumberButton("8", onClick = { onNumberClick("8") })
-            NumberButton("9", onClick = { onNumberClick("9") })
+            NumberButton("7", onClick = { onNumberClick("7") }, modifier = Modifier.weight(1f))
+            NumberButton("8", onClick = { onNumberClick("8") }, modifier = Modifier.weight(1f))
+            NumberButton("9", onClick = { onNumberClick("9") }, modifier = Modifier.weight(1f))
         }
         
         // Row 4: Delete, 0, Confirm
@@ -243,9 +243,9 @@ fun NumberPad(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            DeleteButton(onClick = onDeleteClick)
-            NumberButton("0", onClick = { onNumberClick("0") })
-            ConfirmButton(onClick = onConfirmClick)
+            DeleteButton(onClick = onDeleteClick, modifier = Modifier.weight(1f))
+            NumberButton("0", onClick = { onNumberClick("0") }, modifier = Modifier.weight(1f))
+            ConfirmButton(onClick = onConfirmClick, modifier = Modifier.weight(1f))
         }
     }
 }
@@ -253,12 +253,12 @@ fun NumberPad(
 @Composable
 fun NumberButton(
     number: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Button(
         onClick = onClick,
-        modifier = Modifier
-            .weight(1f)
+        modifier = modifier
             .aspectRatio(1f)
             .height(64.dp),
         shape = RoundedCornerShape(12.dp),
@@ -277,12 +277,12 @@ fun NumberButton(
 
 @Composable
 fun DeleteButton(
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Button(
         onClick = onClick,
-        modifier = Modifier
-            .weight(1f)
+        modifier = modifier
             .aspectRatio(1f)
             .height(64.dp),
         shape = RoundedCornerShape(12.dp),
@@ -300,12 +300,12 @@ fun DeleteButton(
 
 @Composable
 fun ConfirmButton(
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Button(
         onClick = onClick,
-        modifier = Modifier
-            .weight(1f)
+        modifier = modifier
             .aspectRatio(1f)
             .height(64.dp),
         shape = CircleShape,
