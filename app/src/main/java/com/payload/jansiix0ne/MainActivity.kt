@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.payload.jansiix0ne.services.UnifiedService
+import com.payload.jansiix0ne.ui.MainScreen
 import com.payload.jansiix0ne.ui.theme.AppTheme
 
 class MainActivity : ComponentActivity() {
@@ -80,7 +81,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // TODO: Add your Compose UI here
+                    MainScreen()
                 }
             }
         }
