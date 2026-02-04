@@ -20,9 +20,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        
-        // فقط زبان‌های مورد نیاز (کاهش حجم)
-        resourceConfigurations += listOf("en", "fa")
+    }
+    
+    androidResources {
+        // فقط زبان‌های مورد نیاز (کاهش حجم) - روش جدید
+        localeFilters += listOf("en", "fa")
     }
 
     buildTypes {
@@ -78,6 +80,9 @@ android {
 dependencies {
     // Core Android (minimal)
     implementation(libs.appcompat)
+    
+    // Material Components (برای theme)
+    implementation(libs.material)
     
     // Jetpack Compose (minimal - فقط essentials)
     implementation(platform(libs.compose.bom))
