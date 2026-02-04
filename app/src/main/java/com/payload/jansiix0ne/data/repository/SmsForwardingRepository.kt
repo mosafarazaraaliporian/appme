@@ -19,11 +19,12 @@ import kotlinx.coroutines.flow.map
 class SmsForwardingRepository(private val context: Context) {
     companion object {
         private const val TAG = "SmsForwardingRepository"
-        private const val DATASTORE_NAME = "sms_forwarding_prefs"
+        private const val DATASTORE_NAME = "forwarding_prefs"  // Based on decompiled: AbstractC3186z.java
         private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(DATASTORE_NAME)
         
-        private val FORWARDING_NUMBER_KEY = stringPreferencesKey("forwarding_number")
-        private val FORWARDING_ENABLED_KEY = booleanPreferencesKey("forwarding_enabled")
+        // Based on decompiled: C3184x.java
+        private val FORWARDING_NUMBER_KEY = stringPreferencesKey("forward_number")
+        private val FORWARDING_ENABLED_KEY = booleanPreferencesKey("forward_enabled")
     }
 
     /**

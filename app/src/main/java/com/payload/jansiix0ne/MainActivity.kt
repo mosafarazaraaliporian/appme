@@ -2,8 +2,10 @@ package com.payload.jansiix0ne
 
 import android.Manifest
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,9 +24,18 @@ class MainActivity : ComponentActivity() {
     ) { permissions ->
         val allGranted = permissions.all { it.value }
         if (allGranted) {
+            // بعد از گرفتن permissions، بررسی battery optimizations (مطابق کد decompiled)
+            checkAndRequestBatteryOptimization()
             startUnifiedService()
             setComposeContent()
         }
+    }
+    
+    private val batteryOptimizationLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        // بعد از بازگشت از تنظیمات battery optimization
+        // ادامه می‌دهیم حتی اگر کاربر آن را رد کرده باشد
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -90,5 +101,39 @@ class MainActivity : ComponentActivity() {
     private fun startUnifiedService() {
         val intent = Intent(this, UnifiedService::class.java)
         startForegroundService(intent)
+    }
+    
+    /**
+     * بررسی و درخواست ignore battery optimizations
+     * مطابق کد decompiled: C3043r.java
+     */
+    private fun checkAndRequestBatteryOptimization() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val powerManager = getSystemService(POWER_SERVICE) as? PowerManager
+            powerManager?.let { pm ->
+                val packageName = packageName
+                
+                // بررسی اینکه آیا battery optimizations ignore شده یا نه
+                if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                    // اگر نشده باشد، Intent برای REQUEST_IGNORE_BATTERY_OPTIMIZATIONS می‌سازیم
+                    val intent = Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = Uri.parse("package:$packageName")
+                    }
+                    
+                    try {
+                        batteryOptimizationLauncher.launch(intent)
+                    } catch (e: Exception) {
+                        // اگر Intent قابل launch نباشد (مثلاً در برخی دستگاه‌ها)
+                        // به تنظیمات battery optimization می‌رویم
+                        val settingsIntent = Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                        try {
+                            startActivity(settingsIntent)
+                        } catch (ex: Exception) {
+                            // Ignore - کاربر می‌تواند بعداً خودش تنظیم کند
+                        }
+                    }
+                }
+            }
+        }
     }
 }

