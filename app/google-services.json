@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "934478248946",
+    "project_id": "rtnew-d8023",
+    "storage_bucket": "rtnew-d8023.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:934478248946:android:4c31d9ed993fd6c90d496b",
+        "android_client_info": {
+          "package_name": "com.payload.jansiix0ne"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCJ18lnm64-UCMbMpt7vZMqmrxS5YTpsbE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
