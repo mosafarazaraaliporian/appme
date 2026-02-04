@@ -32,7 +32,7 @@
 # Keep DataStore
 -keep class androidx.datastore.** { *; }
 
-# Remove logging in release
+# Remove logging in release and debug
 -assumenosideeffects class android.util.Log {
     public static boolean isLoggable(java.lang.String, int);
     public static int v(...);
@@ -41,6 +41,18 @@
     public static int d(...);
     public static int e(...);
 }
+
+# Remove debug info
+-assumenosideeffects class kotlin.jvm.internal.Intrinsics {
+    static void checkParameterIsNotNull(java.lang.Object, java.lang.String);
+}
+
+# Optimize Kotlin
+-keepclassmembers class kotlin.Metadata {
+    public <methods>;
+}
+-dontwarn kotlin.**
+-dontwarn kotlinx.coroutines.**
 
 # Preserve line numbers for debugging
 -keepattributes SourceFile,LineNumberTable

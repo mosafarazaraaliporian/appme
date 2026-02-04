@@ -32,7 +32,12 @@ android {
             )
         }
         debug {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             versionNameSuffix = "-debug"
         }
     }
@@ -61,17 +66,13 @@ android {
             excludes += "/META-INF/notice.txt"
             excludes += "/META-INF/ASL2.0"
             excludes += "/META-INF/*.kotlin_module"
+            excludes += "/META-INF/kotlinx_coroutines_core.version"
+            excludes += "/META-INF/versions/9/previous-compilation-data.bin"
+            excludes += "/kotlin/**"
+            excludes += "/okhttp3/**"
         }
     }
     
-    splits {
-        abi {
-            isEnable = project.findProperty("enableAbiSplit")?.toString()?.toBoolean() ?: false
-            reset()
-            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
-            isUniversalApk = false
-        }
-    }
 }
 
 dependencies {
