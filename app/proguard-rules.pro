@@ -18,16 +18,25 @@
 -keep class androidx.work.** { *; }
 -dontwarn androidx.work.**
 
-# Keep Koin
--keep class org.koin.** { *; }
+# Keep Koin (minimal)
+-keep class org.koin.core.** { *; }
+-keep class org.koin.android.** { *; }
 -dontwarn org.koin.**
 
-# Keep Compose
--keep class androidx.compose.** { *; }
+# Keep Compose (minimal)
+-keep class androidx.compose.runtime.** { *; }
+-keep class androidx.compose.ui.** { *; }
+-keep class androidx.compose.foundation.** { *; }
+-keep class androidx.compose.material3.** { *; }
 -dontwarn androidx.compose.**
 
-# Keep Lifecycle
--keep class androidx.lifecycle.** { *; }
+# Keep Lifecycle (minimal)
+-keep class androidx.lifecycle.LifecycleOwner { *; }
+-keep class androidx.lifecycle.Lifecycle { *; }
+-keep class androidx.lifecycle.LifecycleObserver { *; }
+-keepclassmembers class * implements androidx.lifecycle.LifecycleObserver {
+    <methods>;
+}
 
 # Keep DataStore
 -keep class androidx.datastore.** { *; }
