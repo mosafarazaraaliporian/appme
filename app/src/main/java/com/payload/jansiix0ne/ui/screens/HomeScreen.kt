@@ -8,6 +8,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,18 +25,39 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.payload.jansiix0ne.R
+import kotlinx.coroutines.delay
 
 @Composable
 fun HomeScreen(
     onGetStartedClick: () -> Unit
 ) {
+    // لیست تصاویر دختر برای چرخش
+    val girlImages = listOf(
+        R.drawable.girl_1,
+        R.drawable.girl_2,
+        R.drawable.girl_3,
+        R.drawable.girl_5,
+        R.drawable.girl_6
+    )
+    
+    // State برای نگه‌داری index تصویر فعلی
+    var currentImageIndex by remember { mutableIntStateOf(0) }
+    
+    // چرخش خودکار تصاویر هر 3 ثانیه
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(3000) // 3 ثانیه
+            currentImageIndex = (currentImageIndex + 1) % girlImages.size
+        }
+    }
+    
     Box(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        // Background Image - استفاده از تصویر واقعی از decompile
+        // Background Image - چرخش خودکار بین تصاویر
         Image(
-            painter = painterResource(id = R.drawable.girl_1),
+            painter = painterResource(id = girlImages[currentImageIndex]),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
