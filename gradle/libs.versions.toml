@@ -13,6 +13,7 @@ koin = "3.5.6"
 firebase-bom = "33.7.0"
 work = "2.9.1"
 kotlin = "2.1.0"
+compose-compiler = "1.5.15"
 coroutines = "1.9.0"
 datastore = "1.1.1"
 
@@ -60,4 +61,5 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 google-services = { id = "com.google.gms.google-services", version = "4.4.2" }
 crashlytics = { id = "com.google.firebase.crashlytics", version = "3.0.2" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 
