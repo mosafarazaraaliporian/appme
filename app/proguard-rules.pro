@@ -18,10 +18,7 @@
 -keep class androidx.work.** { *; }
 -dontwarn androidx.work.**
 
-# Keep Koin (minimal)
--keep class org.koin.core.** { *; }
--keep class org.koin.android.** { *; }
--dontwarn org.koin.**
+# Koin removed - no longer used
 
 # Keep Compose (minimal)
 -keep class androidx.compose.runtime.** { *; }

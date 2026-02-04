@@ -90,8 +90,7 @@ dependencies {
     // Lifecycle (minimal)
     implementation(libs.lifecycle.runtime.ktx)
     
-    // Koin (minimal - فقط core، بدون compose)
-    implementation(libs.koin.android)
+    // Koin حذف شد - استفاده نمی‌شود
     
     // Firebase (فقط essentials)
     implementation(platform(libs.firebase.bom))

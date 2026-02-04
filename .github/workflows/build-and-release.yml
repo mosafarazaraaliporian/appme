@@ -30,6 +30,36 @@ jobs:
       
     - name: Build Release APK
       run: ./gradlew assembleRelease
+    
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+    
+    - name: Build AAB (Android App Bundle - recommended for smaller size)
+      run: ./gradlew bundleRelease
+      continue-on-error: true
+    
+    - name: Optimize APK with zipalign (if Android SDK available)
+      run: |
+        if [ -d "$ANDROID_HOME/build-tools" ]; then
+          echo "Optimizing Release APK with zipalign..."
+          zipalign_cmd=$(find $ANDROID_HOME/build-tools -name zipalign | head -1)
+          if [ -n "$zipalign_cmd" ]; then
+            for apk in app/build/outputs/apk/release/*.apk; do
+              if [ -f "$apk" ] && [[ ! "$apk" == *"-signed"* ]] && [[ ! "$apk" == *"-aligned"* ]]; then
+                original_size=$(stat -f%z "$apk" 2>/dev/null || stat -c%s "$apk" 2>/dev/null || echo "0")
+                aligned="${apk%.apk}-aligned.apk"
+                $zipalign_cmd -P 16 -f -v 4 "$apk" "$aligned" && mv "$aligned" "$apk" && echo "Optimized: $apk (Original: ${original_size} bytes)" || echo "zipalign failed for $apk"
+              fi
+            done
+          fi
+        else
+          echo "Android SDK not found, skipping zipalign (Gradle already does this automatically)"
+        fi
+    
+    - name: Show APK size
+      run: |
+        echo "=== Release APK Size ==="
+        ls -lh app/build/outputs/apk/release/*.apk 2>/dev/null || echo "No release APKs"
       
     - name: List Release APK files
       run: |
@@ -41,13 +71,17 @@ jobs:
       run: |
         echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
         for apk in app/build/outputs/apk/release/*.apk; do
-          if [[ ! "$apk" == *"-signed"* ]]; then
+          if [[ ! "$apk" == *"-signed"* ]] && [[ ! "$apk" == *"-aligned"* ]]; then
+            echo "Signing: $apk"
             jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
               -keystore keystore.jks \
               -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
               -keypass "${{ secrets.KEY_PASSWORD }}" \
               "$apk" \
               "${{ secrets.KEY_ALIAS }}"
+            
+            # Verify signature
+            jarsigner -verify -verbose -certs "$apk" || echo "Warning: Signature verification failed"
           fi
         done
       continue-on-error: true
@@ -59,12 +93,22 @@ jobs:
         path: app/build/outputs/apk/release/*.apk
         retention-days: 90
         if-no-files-found: warn
-        
+    
+    - name: Upload Release AAB (if available)
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-aab
+        path: app/build/outputs/bundle/release/*.aab
+        retention-days: 90
+        if-no-files-found: ignore
+      
     - name: Create GitHub Release
       if: github.event_name == 'release'
       uses: softprops/action-gh-release@v1
       with:
-        files: app/build/outputs/apk/release/*.apk
+        files: |
+          app/build/outputs/apk/release/*.apk
+          app/build/outputs/bundle/release/*.aab
         draft: false
         prerelease: false
       env:

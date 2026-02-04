@@ -10,9 +10,8 @@ import kotlinx.coroutines.tasks.await
 /**
  * Repository for Firestore operations
  */
-class FirestoreRepository(
+class FirestoreRepository {
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
-) {
     companion object {
         private const val TAG = "FirestoreRepository"
         private const val COLLECTION_MASTER = "MASTERHU"

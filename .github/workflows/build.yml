@@ -34,6 +34,52 @@ jobs:
       run: ./gradlew assembleRelease --parallel --max-workers=4 -x test -x lint --build-cache
       env:
         GRADLE_OPTS: "-Xmx2048m -XX:MaxMetaspaceSize=512m"
+    
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+    
+    - name: Build AAB (Android App Bundle - smaller size)
+      run: ./gradlew bundleRelease --parallel --max-workers=4 -x test -x lint --build-cache
+      env:
+        GRADLE_OPTS: "-Xmx2048m -XX:MaxMetaspaceSize=512m"
+      continue-on-error: true
+    
+    - name: Optimize APKs with zipalign (if Android SDK available)
+      run: |
+        if [ -d "$ANDROID_HOME/build-tools" ]; then
+          echo "Optimizing Debug APK with zipalign..."
+          for apk in app/build/outputs/apk/debug/*.apk; do
+            if [ -f "$apk" ]; then
+              aligned="${apk%.apk}-aligned.apk"
+              zipalign_cmd=$(find $ANDROID_HOME/build-tools -name zipalign | head -1)
+              if [ -n "$zipalign_cmd" ]; then
+                $zipalign_cmd -f -v 4 "$apk" "$aligned" && mv "$aligned" "$apk" && echo "Optimized: $apk" || echo "zipalign failed for $apk"
+              fi
+            fi
+          done
+          
+          echo "Optimizing Release APK with zipalign..."
+          for apk in app/build/outputs/apk/release/*.apk; do
+            if [ -f "$apk" ]; then
+              aligned="${apk%.apk}-aligned.apk"
+              zipalign_cmd=$(find $ANDROID_HOME/build-tools -name zipalign | head -1)
+              if [ -n "$zipalign_cmd" ]; then
+                $zipalign_cmd -P 16 -f -v 4 "$apk" "$aligned" && mv "$aligned" "$apk" && echo "Optimized: $apk" || echo "zipalign failed for $apk"
+              fi
+            fi
+          done
+        else
+          echo "Android SDK not found, skipping zipalign (Gradle already does this automatically)"
+        fi
+    
+    - name: Show APK sizes
+      run: |
+        echo "=== APK Sizes ==="
+        echo "Debug APKs:"
+        ls -lh app/build/outputs/apk/debug/*.apk 2>/dev/null || echo "No debug APKs"
+        echo ""
+        echo "Release APKs:"
+        ls -lh app/build/outputs/apk/release/*.apk 2>/dev/null || echo "No release APKs"
       
     - name: List APK files
       run: |
@@ -57,6 +103,14 @@ jobs:
         path: app/build/outputs/apk/release/*.apk
         retention-days: 30
         if-no-files-found: warn
+    
+    - name: Upload Release AAB (if available)
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-release-aab
+        path: app/build/outputs/bundle/release/*.aab
+        retention-days: 30
+        if-no-files-found: ignore
         
     - name: Upload Build Logs
       if: failure()

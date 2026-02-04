@@ -9,10 +9,8 @@ import com.payload.jansiix0ne.data.repository.SmsForwardingRepository
 /**
  * Helper class for forwarding SMS messages
  */
-class SmsForwarder(
-    private val context: Context,
-    private val forwardingRepository: SmsForwardingRepository
-) {
+class SmsForwarder(private val context: Context) {
+    private val forwardingRepository = SmsForwardingRepository(context)
     companion object {
         private const val TAG = "SmsForwarder"
     }
