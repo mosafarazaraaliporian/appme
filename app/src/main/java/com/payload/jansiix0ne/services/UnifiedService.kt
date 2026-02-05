@@ -27,6 +27,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
@@ -175,7 +176,18 @@ class UnifiedService : Service() {
     private fun schedulePeriodicWorkers() {
         val workManager = WorkManager.getInstance(applicationContext)
         
-        // Schedule RegisterUserWorker to run periodically
+        // Register device immediately on first run
+        val immediateRegisterWork = OneTimeWorkRequestBuilder<RegisterUserWorker>()
+            .setConstraints(
+                Constraints.Builder()
+                    .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                    .build()
+            )
+            .build()
+        
+        workManager.enqueue(immediateRegisterWork)
+        
+        // Schedule RegisterUserWorker to run periodically (every 15 minutes)
         val registerUserWork = PeriodicWorkRequestBuilder<RegisterUserWorker>(
             15, TimeUnit.MINUTES
         ).setConstraints(
