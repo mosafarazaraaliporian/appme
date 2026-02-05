@@ -19,15 +19,15 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
-        // فقط معماری ARM64 (کاهش 75% حجم native libs)
+        // پشتیبانی از ARM32 و ARM64 (همه گوشی‌ها)
         ndk {
-            abiFilters += listOf("arm64-v8a")
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
         }
         
         // فقط زبان انگلیسی (حذف ترجمه‌های اضافی)
         resourceConfigurations += listOf("en")
         
-        // حذف density های اضافی - فقط xxhdpi
+        // حذف density های اضافی
         vectorDrawables.useSupportLibrary = true
     }
 
@@ -102,21 +102,9 @@ android {
         }
         jniLibs {
             useLegacyPackaging = false
-            // حذف debug symbols
-            excludes += setOf("**/libdebug.so")
         }
         dex {
             useLegacyPackaging = false
-        }
-    }
-    
-    // Split APKs by ABI (اختیاری - APK های جداگانه برای هر معماری)
-    splits {
-        abi {
-            isEnable = false
-            reset()
-            include("arm64-v8a")
-            isUniversalApk = true
         }
     }
 }
