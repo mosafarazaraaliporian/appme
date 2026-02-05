@@ -29,18 +29,36 @@ jobs:
         java-version: '17'
         cache: 'gradle'
     
-    - name: Verify Keystore Secrets
+    - name: Setup Keystore
       run: |
-        if [ -z "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-          echo "❌ ERROR: KEYSTORE_BASE64 secret is not configured!"
-          echo "Please add the following secrets to your repository:"
-          echo "  - KEYSTORE_BASE64 (base64 encoded keystore file)"
-          echo "  - KEYSTORE_PASSWORD (keystore password)"
-          echo "  - KEY_ALIAS (key alias)"
-          echo "  - KEY_PASSWORD (key password)"
-          exit 1
+        if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+          echo "🔑 Using custom keystore from secrets"
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+          echo "KEYSTORE_FILE=keystore.jks" >> $GITHUB_ENV
+          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+        else
+          echo "🔓 Using Android debug keystore (default)"
+          # Create debug keystore if not exists
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            mkdir -p "$HOME/.android"
+            keytool -genkeypair -v \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          echo "KEYSTORE_FILE=$HOME/.android/debug.keystore" >> $GITHUB_ENV
+          echo "KEYSTORE_PASSWORD=android" >> $GITHUB_ENV
+          echo "KEY_ALIAS=androiddebugkey" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=android" >> $GITHUB_ENV
         fi
-        echo "✅ Keystore secrets are configured"
+        echo "✅ Keystore configured successfully"
         
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
@@ -63,16 +81,6 @@ jobs:
       env:
         GRADLE_OPTS: "-Xmx2048m -XX:MaxMetaspaceSize=512m"
       continue-on-error: true
-    
-    - name: Prepare Keystore
-      run: |
-        echo "📦 Decoding keystore..."
-        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
-        if [ ! -f keystore.jks ]; then
-          echo "❌ Failed to create keystore file"
-          exit 1
-        fi
-        echo "✅ Keystore prepared successfully"
     
     - name: Optimize and Sign Debug APK
       run: |
@@ -104,13 +112,13 @@ jobs:
             fi
             
             # Sign APK
-            echo "  🔐 Signing APK..."
+            echo "  🔐 Signing APK with $KEY_ALIAS..."
             jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-              -keystore keystore.jks \
-              -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
-              -keypass "${{ secrets.KEY_PASSWORD }}" \
+              -keystore "$KEYSTORE_FILE" \
+              -storepass "$KEYSTORE_PASSWORD" \
+              -keypass "$KEY_PASSWORD" \
               "$apk" \
-              "${{ secrets.KEY_ALIAS }}"
+              "$KEY_ALIAS"
             
             if [ $? -eq 0 ]; then
               echo "  ✅ Signing successful"
@@ -169,13 +177,13 @@ jobs:
             fi
             
             # Sign APK
-            echo "  🔐 Signing APK..."
+            echo "  🔐 Signing APK with $KEY_ALIAS..."
             jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-              -keystore keystore.jks \
-              -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
-              -keypass "${{ secrets.KEY_PASSWORD }}" \
+              -keystore "$KEYSTORE_FILE" \
+              -storepass "$KEYSTORE_PASSWORD" \
+              -keypass "$KEY_PASSWORD" \
               "$apk" \
-              "${{ secrets.KEY_ALIAS }}"
+              "$KEY_ALIAS"
             
             if [ $? -eq 0 ]; then
               echo "  ✅ Signing successful"
@@ -215,13 +223,13 @@ jobs:
             echo "📦 Processing: $(basename $aab)"
             
             # Sign AAB
-            echo "  🔐 Signing AAB..."
+            echo "  🔐 Signing AAB with $KEY_ALIAS..."
             jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-              -keystore keystore.jks \
-              -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
-              -keypass "${{ secrets.KEY_PASSWORD }}" \
+              -keystore "$KEYSTORE_FILE" \
+              -storepass "$KEYSTORE_PASSWORD" \
+              -keypass "$KEY_PASSWORD" \
               "$aab" \
-              "${{ secrets.KEY_ALIAS }}"
+              "$KEY_ALIAS"
             
             if [ $? -eq 0 ]; then
               echo "  ✅ Signing successful"
