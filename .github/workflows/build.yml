@@ -38,8 +38,9 @@ jobs:
           echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
           echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
           echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+          echo "USING_DEBUG_KEY=false" >> $GITHUB_ENV
         else
-          echo "🔓 Using Android debug keystore (default)"
+          echo "🔓 Using Android debug keystore (auto-generated)"
           # Create debug keystore if not exists
           if [ ! -f "$HOME/.android/debug.keystore" ]; then
             mkdir -p "$HOME/.android"
@@ -57,296 +58,139 @@ jobs:
           echo "KEYSTORE_PASSWORD=android" >> $GITHUB_ENV
           echo "KEY_ALIAS=androiddebugkey" >> $GITHUB_ENV
           echo "KEY_PASSWORD=android" >> $GITHUB_ENV
+          echo "USING_DEBUG_KEY=true" >> $GITHUB_ENV
         fi
         echo "✅ Keystore configured successfully"
         
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
       
-    - name: Build Debug APK (unsigned)
-      run: ./gradlew assembleDebug --parallel --max-workers=4 -x test -x lint --build-cache
-      env:
-        GRADLE_OPTS: "-Xmx2048m -XX:MaxMetaspaceSize=512m"
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug
     
-    - name: Build Release APK (unsigned)
-      run: ./gradlew assembleRelease --parallel --max-workers=4 -x test -x lint --build-cache
-      env:
-        GRADLE_OPTS: "-Xmx2048m -XX:MaxMetaspaceSize=512m"
+    - name: Build Release APK
+      run: ./gradlew assembleRelease
     
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
     
-    - name: Build AAB (Android App Bundle)
-      run: ./gradlew bundleRelease --parallel --max-workers=4 -x test -x lint --build-cache
-      env:
-        GRADLE_OPTS: "-Xmx2048m -XX:MaxMetaspaceSize=512m"
-      continue-on-error: true
-    
-    - name: Optimize and Sign Debug APK
+    - name: Sign Debug APK
       run: |
-        echo "🔧 Processing Debug APKs..."
-        
-        # Find zipalign tool
-        zipalign_cmd=$(find $ANDROID_HOME/build-tools -name zipalign 2>/dev/null | head -1)
-        if [ -z "$zipalign_cmd" ]; then
-          echo "⚠️  zipalign not found, skipping optimization"
-        fi
+        echo "🔧 Signing Debug APKs..."
         
         signed_count=0
         for apk in app/build/outputs/apk/debug/*.apk; do
           if [ -f "$apk" ]; then
-            echo ""
-            echo "📱 Processing: $(basename $apk)"
+            echo "📱 Signing: $(basename $apk)"
             
-            # Zipalign if available
-            if [ -n "$zipalign_cmd" ]; then
-              echo "  ⚙️  Optimizing with zipalign..."
-              aligned="${apk%.apk}-aligned.apk"
-              $zipalign_cmd -f -v 4 "$apk" "$aligned"
-              if [ $? -eq 0 ]; then
-                mv "$aligned" "$apk"
-                echo "  ✅ Zipalign successful"
-              else
-                echo "  ⚠️  Zipalign failed, continuing with original"
-              fi
-            fi
-            
-            # Sign APK
-            echo "  🔐 Signing APK with $KEY_ALIAS..."
-            jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+            jarsigner -sigalg SHA256withRSA -digestalg SHA-256 \
               -keystore "$KEYSTORE_FILE" \
               -storepass "$KEYSTORE_PASSWORD" \
               -keypass "$KEY_PASSWORD" \
               "$apk" \
               "$KEY_ALIAS"
             
-            if [ $? -eq 0 ]; then
-              echo "  ✅ Signing successful"
-              
-              # Verify signature
-              jarsigner -verify -verbose -certs "$apk"
-              if [ $? -eq 0 ]; then
-                echo "  ✅ Signature verified"
-                signed_count=$((signed_count + 1))
-              else
-                echo "  ❌ Signature verification failed!"
-                exit 1
-              fi
+            if jarsigner -verify "$apk" 2>&1 | grep -q "jar verified"; then
+              echo "✅ Signed successfully"
+              signed_count=$((signed_count + 1))
             else
-              echo "  ❌ Signing failed!"
+              echo "❌ Signing failed!"
               exit 1
             fi
           fi
         done
         
-        if [ $signed_count -eq 0 ]; then
-          echo "❌ No Debug APKs were signed!"
-          exit 1
-        fi
-        
-        echo ""
-        echo "✅ Successfully signed $signed_count Debug APK(s)"
+        echo "✅ Signed $signed_count Debug APK(s)"
       
-    - name: Optimize and Sign Release APK
+    - name: Sign Release APK
       run: |
-        echo "🔧 Processing Release APKs..."
-        
-        # Find zipalign tool
-        zipalign_cmd=$(find $ANDROID_HOME/build-tools -name zipalign 2>/dev/null | head -1)
-        if [ -z "$zipalign_cmd" ]; then
-          echo "⚠️  zipalign not found, skipping optimization"
-        fi
+        echo "🔧 Signing Release APKs..."
         
         signed_count=0
         for apk in app/build/outputs/apk/release/*.apk; do
           if [ -f "$apk" ]; then
-            echo ""
-            echo "📱 Processing: $(basename $apk)"
+            echo "📱 Signing: $(basename $apk)"
             
-            # Zipalign if available (with page alignment for release)
-            if [ -n "$zipalign_cmd" ]; then
-              echo "  ⚙️  Optimizing with zipalign (page-aligned)..."
-              aligned="${apk%.apk}-aligned.apk"
-              $zipalign_cmd -P 16 -f -v 4 "$apk" "$aligned"
-              if [ $? -eq 0 ]; then
-                mv "$aligned" "$apk"
-                echo "  ✅ Zipalign successful"
-              else
-                echo "  ⚠️  Zipalign failed, continuing with original"
-              fi
-            fi
-            
-            # Sign APK
-            echo "  🔐 Signing APK with $KEY_ALIAS..."
-            jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+            jarsigner -sigalg SHA256withRSA -digestalg SHA-256 \
               -keystore "$KEYSTORE_FILE" \
               -storepass "$KEYSTORE_PASSWORD" \
               -keypass "$KEY_PASSWORD" \
               "$apk" \
               "$KEY_ALIAS"
             
-            if [ $? -eq 0 ]; then
-              echo "  ✅ Signing successful"
-              
-              # Verify signature
-              jarsigner -verify -verbose -certs "$apk"
-              if [ $? -eq 0 ]; then
-                echo "  ✅ Signature verified"
-                signed_count=$((signed_count + 1))
-              else
-                echo "  ❌ Signature verification failed!"
-                exit 1
-              fi
+            if jarsigner -verify "$apk" 2>&1 | grep -q "jar verified"; then
+              echo "✅ Signed successfully"
+              signed_count=$((signed_count + 1))
             else
-              echo "  ❌ Signing failed!"
+              echo "❌ Signing failed!"
               exit 1
             fi
           fi
         done
         
-        if [ $signed_count -eq 0 ]; then
-          echo "❌ No Release APKs were signed!"
-          exit 1
+        echo "✅ Signed $signed_count Release APK(s)"
+    
+    - name: Show APK Info
+      run: |
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "📊 APK FILES"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        if [ "$USING_DEBUG_KEY" = "true" ]; then
+          echo "⚠️  Signed with debug keystore"
         fi
-        
         echo ""
-        echo "✅ Successfully signed $signed_count Release APK(s)"
-    
-    - name: Sign AAB (if available)
-      run: |
-        echo "🔧 Processing AAB files..."
-        
-        aab_count=0
-        for aab in app/build/outputs/bundle/release/*.aab; do
-          if [ -f "$aab" ]; then
-            echo ""
-            echo "📦 Processing: $(basename $aab)"
-            
-            # Sign AAB
-            echo "  🔐 Signing AAB with $KEY_ALIAS..."
-            jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-              -keystore "$KEYSTORE_FILE" \
-              -storepass "$KEYSTORE_PASSWORD" \
-              -keypass "$KEY_PASSWORD" \
-              "$aab" \
-              "$KEY_ALIAS"
-            
-            if [ $? -eq 0 ]; then
-              echo "  ✅ Signing successful"
-              
-              # Verify signature
-              jarsigner -verify -verbose -certs "$aab"
-              if [ $? -eq 0 ]; then
-                echo "  ✅ Signature verified"
-                aab_count=$((aab_count + 1))
-              else
-                echo "  ⚠️  Signature verification failed"
-              fi
-            else
-              echo "  ⚠️  Signing failed"
-            fi
-          fi
-        done
-        
-        if [ $aab_count -gt 0 ]; then
-          echo ""
-          echo "✅ Successfully signed $aab_count AAB file(s)"
-        else
-          echo "ℹ️  No AAB files found to sign"
-        fi
-      continue-on-error: true
-    
-    - name: Show Signed APK Sizes
-      run: |
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "📊 SIGNED APK SIZES"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "🐛 Debug:"
+        ls -lh app/build/outputs/apk/debug/*.apk 2>/dev/null || echo "  None"
         echo ""
-        echo "🐛 Debug APKs:"
-        ls -lh app/build/outputs/apk/debug/*.apk 2>/dev/null || echo "  No debug APKs"
-        echo ""
-        echo "🚀 Release APKs:"
-        ls -lh app/build/outputs/apk/release/*.apk 2>/dev/null || echo "  No release APKs"
-        echo ""
-        echo "📦 AAB Files:"
-        ls -lh app/build/outputs/bundle/release/*.aab 2>/dev/null || echo "  No AAB files"
+        echo "🚀 Release:"
+        ls -lh app/build/outputs/apk/release/*.apk 2>/dev/null || echo "  None"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     
-    - name: Verify All APKs Are Signed
+    - name: Verify APKs Are Signed
       run: |
-        echo "🔍 Verifying all APKs are properly signed..."
+        echo "🔍 Verifying signatures..."
         
-        all_signed=true
-        
-        # Check Debug APKs
-        for apk in app/build/outputs/apk/debug/*.apk; do
+        for apk in app/build/outputs/apk/debug/*.apk app/build/outputs/apk/release/*.apk; do
           if [ -f "$apk" ]; then
-            echo "Checking: $(basename $apk)"
-            if jarsigner -verify "$apk" > /dev/null 2>&1; then
-              echo "  ✅ Signed"
+            if jarsigner -verify "$apk" 2>&1 | grep -q "jar verified"; then
+              echo "✅ $(basename $apk)"
             else
-              echo "  ❌ NOT SIGNED!"
-              all_signed=false
+              echo "❌ $(basename $apk) - NOT SIGNED!"
+              exit 1
             fi
           fi
         done
-        
-        # Check Release APKs
-        for apk in app/build/outputs/apk/release/*.apk; do
-          if [ -f "$apk" ]; then
-            echo "Checking: $(basename $apk)"
-            if jarsigner -verify "$apk" > /dev/null 2>&1; then
-              echo "  ✅ Signed"
-            else
-              echo "  ❌ NOT SIGNED!"
-              all_signed=false
-            fi
-          fi
-        done
-        
-        if [ "$all_signed" = false ]; then
-          echo ""
-          echo "❌ ERROR: Some APKs are not signed!"
-          exit 1
-        fi
         
         echo ""
-        echo "✅ All APKs are properly signed!"
+        echo "✅ All APKs are signed!"
+        
+        if [ "$USING_DEBUG_KEY" = "true" ]; then
+          echo ""
+          echo "⚠️  Using debug keystore. For production, add secrets:"
+          echo "   KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD"
+        fi
       
-    - name: Upload Signed Debug APK
+    - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
         name: app-debug-signed
         path: app/build/outputs/apk/debug/*.apk
-        retention-days: 90
-        if-no-files-found: error
+        retention-days: 30
       
-    - name: Upload Signed Release APK
+    - name: Upload Release APK
       uses: actions/upload-artifact@v4
       with:
         name: app-release-signed
         path: app/build/outputs/apk/release/*.apk
-        retention-days: 90
-        if-no-files-found: error
-    
-    - name: Upload Signed AAB (if available)
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-release-aab-signed
-        path: app/build/outputs/bundle/release/*.aab
-        retention-days: 90
-        if-no-files-found: ignore
+        retention-days: 30
       
-    - name: Create GitHub Release
+    - name: Create Release
       if: github.event_name == 'release'
       uses: softprops/action-gh-release@v1
       with:
         files: |
           app/build/outputs/apk/debug/*.apk
           app/build/outputs/apk/release/*.apk
-          app/build/outputs/bundle/release/*.aab
-        draft: false
-        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     

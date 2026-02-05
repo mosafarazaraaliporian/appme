@@ -8,9 +8,7 @@ plugins {
 
 android {
     namespace = "com.payload.jansiix0ne"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.payload.jansiix0ne"
@@ -21,24 +19,17 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
-    
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = false
-            isDebuggable = false
+            isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
-        debug {
-            isMinifyEnabled = false
-            isShrinkResources = false
-            versionNameSuffix = "-debug"
-        }
     }
+    
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -57,41 +48,32 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
-    
 }
 
 dependencies {
-    // Core Android (minimal)
+    // Core Android
     implementation(libs.appcompat)
-    
-    // Material Components (برای theme)
     implementation(libs.material)
     
-    // Jetpack Compose (minimal - فقط essentials)
+    // Jetpack Compose
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
     implementation(libs.activity.compose)
-    // حذف tooling preview در release
     debugImplementation(libs.compose.ui.tooling.preview)
     
-    // Lifecycle (minimal)
+    // Lifecycle
     implementation(libs.lifecycle.runtime.ktx)
     
-    // Koin حذف شد - استفاده نمی‌شود
-    
-    // Firebase (فقط essentials)
+    // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.messaging)
-    // حذف Storage و Crashlytics اگر استفاده نمی‌شود
-    // implementation(libs.firebase.storage)
-    // implementation(libs.firebase.crashlytics)
     
     // WorkManager
     implementation(libs.work.runtime.ktx)
     
-    // Coroutines (minimal)
+    // Coroutines
     implementation(libs.kotlinx.coroutines.android)
     
     // DataStore
