@@ -62,8 +62,8 @@ android {
     
     buildFeatures {
         compose = true
-        // غیرفعال کردن ویژگی‌های غیرضروری
-        buildConfig = false
+        // فعال کردن BuildConfig برای دسترسی به VERSION_NAME
+        buildConfig = true
         aidl = false
         renderScript = false
         resValues = false
