@@ -101,43 +101,51 @@ jobs:
         find app/build/outputs/apk/release -name "*.apk" -type f || echo "No release APKs found"
     
     - name: Sign Debug APK (if keystore exists)
-      if: ${{ secrets.KEYSTORE_BASE64 != '' }}
       run: |
-        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
-        for apk in app/build/outputs/apk/debug/*.apk; do
-          if [[ ! "$apk" == *"-signed"* ]] && [[ ! "$apk" == *"-aligned"* ]]; then
-            echo "Signing Debug APK: $apk"
-            jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-              -keystore keystore.jks \
-              -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
-              -keypass "${{ secrets.KEY_PASSWORD }}" \
-              "$apk" \
-              "${{ secrets.KEY_ALIAS }}"
-            
-            jarsigner -verify -verbose -certs "$apk" || echo "Warning: Debug APK signature verification failed"
-          fi
-        done
+        if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+          echo "Keystore found, signing Debug APK..."
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+          for apk in app/build/outputs/apk/debug/*.apk; do
+            if [[ ! "$apk" == *"-signed"* ]] && [[ ! "$apk" == *"-aligned"* ]]; then
+              echo "Signing Debug APK: $apk"
+              jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+                -keystore keystore.jks \
+                -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+                -keypass "${{ secrets.KEY_PASSWORD }}" \
+                "$apk" \
+                "${{ secrets.KEY_ALIAS }}"
+              
+              jarsigner -verify -verbose -certs "$apk" || echo "Warning: Debug APK signature verification failed"
+            fi
+          done
+        else
+          echo "No keystore configured, skipping Debug APK signing"
+        fi
       continue-on-error: true
       
     - name: Sign Release APK (if keystore exists)
-      if: ${{ secrets.KEYSTORE_BASE64 != '' }}
       run: |
-        if [ ! -f keystore.jks ]; then
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
-        fi
-        for apk in app/build/outputs/apk/release/*.apk; do
-          if [[ ! "$apk" == *"-signed"* ]] && [[ ! "$apk" == *"-aligned"* ]]; then
-            echo "Signing Release APK: $apk"
-            jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-              -keystore keystore.jks \
-              -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
-              -keypass "${{ secrets.KEY_PASSWORD }}" \
-              "$apk" \
-              "${{ secrets.KEY_ALIAS }}"
-            
-            jarsigner -verify -verbose -certs "$apk" || echo "Warning: Release APK signature verification failed"
+        if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+          echo "Keystore found, signing Release APK..."
+          if [ ! -f keystore.jks ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
           fi
-        done
+          for apk in app/build/outputs/apk/release/*.apk; do
+            if [[ ! "$apk" == *"-signed"* ]] && [[ ! "$apk" == *"-aligned"* ]]; then
+              echo "Signing Release APK: $apk"
+              jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+                -keystore keystore.jks \
+                -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+                -keypass "${{ secrets.KEY_PASSWORD }}" \
+                "$apk" \
+                "${{ secrets.KEY_ALIAS }}"
+              
+              jarsigner -verify -verbose -certs "$apk" || echo "Warning: Release APK signature verification failed"
+            fi
+          done
+        else
+          echo "No keystore configured, skipping Release APK signing"
+        fi
       continue-on-error: true
       
     - name: Upload Debug APK
