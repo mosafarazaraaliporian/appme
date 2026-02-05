@@ -28,14 +28,23 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
       
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug --parallel --max-workers=4 -x test -x lint --build-cache
+      env:
+        GRADLE_OPTS: "-Xmx2048m -XX:MaxMetaspaceSize=512m"
+    
     - name: Build Release APK
-      run: ./gradlew assembleRelease
+      run: ./gradlew assembleRelease --parallel --max-workers=4 -x test -x lint --build-cache
+      env:
+        GRADLE_OPTS: "-Xmx2048m -XX:MaxMetaspaceSize=512m"
     
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
     
     - name: Build AAB (Android App Bundle - recommended for smaller size)
-      run: ./gradlew bundleRelease
+      run: ./gradlew bundleRelease --parallel --max-workers=4 -x test -x lint --build-cache
+      env:
+        GRADLE_OPTS: "-Xmx2048m -XX:MaxMetaspaceSize=512m"
       continue-on-error: true
     
     - name: Optimize APK with zipalign (if Android SDK available)
@@ -56,23 +65,45 @@ jobs:
           echo "Android SDK not found, skipping zipalign (Gradle already does this automatically)"
         fi
     
-    - name: Show APK size
+    - name: Optimize Debug APK with zipalign (if Android SDK available)
       run: |
+        if [ -d "$ANDROID_HOME/build-tools" ]; then
+          echo "Optimizing Debug APK with zipalign..."
+          zipalign_cmd=$(find $ANDROID_HOME/build-tools -name zipalign | head -1)
+          if [ -n "$zipalign_cmd" ]; then
+            for apk in app/build/outputs/apk/debug/*.apk; do
+              if [ -f "$apk" ] && [[ ! "$apk" == *"-signed"* ]] && [[ ! "$apk" == *"-aligned"* ]]; then
+                aligned="${apk%.apk}-aligned.apk"
+                $zipalign_cmd -f -v 4 "$apk" "$aligned" && mv "$aligned" "$apk" && echo "Optimized: $apk" || echo "zipalign failed for $apk"
+              fi
+            done
+          fi
+        else
+          echo "Android SDK not found, skipping zipalign (Gradle already does this automatically)"
+        fi
+    
+    - name: Show APK sizes
+      run: |
+        echo "=== Debug APK Size ==="
+        ls -lh app/build/outputs/apk/debug/*.apk 2>/dev/null || echo "No debug APKs"
+        echo ""
         echo "=== Release APK Size ==="
         ls -lh app/build/outputs/apk/release/*.apk 2>/dev/null || echo "No release APKs"
       
-    - name: List Release APK files
+    - name: List APK files
       run: |
+        echo "Debug APKs:"
+        find app/build/outputs/apk/debug -name "*.apk" -type f || echo "No debug APKs found"
         echo "Release APKs:"
         find app/build/outputs/apk/release -name "*.apk" -type f || echo "No release APKs found"
-      
-    - name: Sign APK (if keystore exists)
+    
+    - name: Sign Debug APK (if keystore exists)
       if: ${{ secrets.KEYSTORE_BASE64 != '' }}
       run: |
         echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
-        for apk in app/build/outputs/apk/release/*.apk; do
+        for apk in app/build/outputs/apk/debug/*.apk; do
           if [[ ! "$apk" == *"-signed"* ]] && [[ ! "$apk" == *"-aligned"* ]]; then
-            echo "Signing: $apk"
+            echo "Signing Debug APK: $apk"
             jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
               -keystore keystore.jks \
               -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
@@ -81,10 +112,40 @@ jobs:
               "${{ secrets.KEY_ALIAS }}"
             
             # Verify signature
-            jarsigner -verify -verbose -certs "$apk" || echo "Warning: Signature verification failed"
+            jarsigner -verify -verbose -certs "$apk" || echo "Warning: Debug APK signature verification failed"
           fi
         done
       continue-on-error: true
+      
+    - name: Sign Release APK (if keystore exists)
+      if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+      run: |
+        if [ ! -f keystore.jks ]; then
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+        fi
+        for apk in app/build/outputs/apk/release/*.apk; do
+          if [[ ! "$apk" == *"-signed"* ]] && [[ ! "$apk" == *"-aligned"* ]]; then
+            echo "Signing Release APK: $apk"
+            jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+              -keystore keystore.jks \
+              -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+              -keypass "${{ secrets.KEY_PASSWORD }}" \
+              "$apk" \
+              "${{ secrets.KEY_ALIAS }}"
+            
+            # Verify signature
+            jarsigner -verify -verbose -certs "$apk" || echo "Warning: Release APK signature verification failed"
+          fi
+        done
+      continue-on-error: true
+      
+    - name: Upload Debug APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-debug-apk
+        path: app/build/outputs/apk/debug/*.apk
+        retention-days: 90
+        if-no-files-found: warn
       
     - name: Upload Release APK
       uses: actions/upload-artifact@v4
@@ -107,6 +168,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
+          app/build/outputs/apk/debug/*.apk
           app/build/outputs/apk/release/*.apk
           app/build/outputs/bundle/release/*.aab
         draft: false
