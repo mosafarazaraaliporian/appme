@@ -18,15 +18,25 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        // فقط معماری‌های اصلی (کاهش 60% حجم)
+        ndk {
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+        debug {
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
     
@@ -41,11 +51,41 @@ android {
     
     buildFeatures {
         compose = true
+        // غیرفعال کردن ویژگی‌های غیرضروری
+        buildConfig = false
+        aidl = false
+        renderScript = false
+        resValues = false
+        shaders = false
     }
     
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += setOf(
+                "/META-INF/{AL2.0,LGPL2.1}",
+                "/META-INF/*.kotlin_module",
+                "**/kotlin/**",
+                "**/*.txt",
+                "**/*.version",
+                "**/*.properties",
+                "/kotlin/**",
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/license.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/notice.txt",
+                "META-INF/ASL2.0",
+                "META-INF/*.properties",
+                "META-INF/*.version"
+            )
+        }
+        jniLibs {
+            useLegacyPackaging = false
+        }
+        dex {
+            useLegacyPackaging = false
         }
     }
 }
