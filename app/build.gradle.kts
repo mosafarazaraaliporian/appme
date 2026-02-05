@@ -75,11 +75,6 @@ android {
             excludes += setOf(
                 "/META-INF/{AL2.0,LGPL2.1}",
                 "/META-INF/*.kotlin_module",
-                "**/kotlin/**",
-                "**/*.txt",
-                "**/*.version",
-                "**/*.properties",
-                "/kotlin/**",
                 "META-INF/DEPENDENCIES",
                 "META-INF/LICENSE",
                 "META-INF/LICENSE.txt",
@@ -88,16 +83,14 @@ android {
                 "META-INF/NOTICE.txt",
                 "META-INF/notice.txt",
                 "META-INF/ASL2.0",
-                "META-INF/*.properties",
-                "META-INF/*.version",
-                "META-INF/proguard/*",
-                "META-INF/com.android.tools/**",
-                "META-INF/maven/**",
-                "META-INF/services/**",
-                "**/*.proto",
-                "**/*.bin",
                 "DebugProbesKt.bin",
                 "kotlin-tooling-metadata.json"
+            )
+            // حفظ فایل‌های مهم
+            pickFirsts += setOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/NOTICE"
             )
         }
         jniLibs {
@@ -124,7 +117,7 @@ dependencies {
     // Lifecycle
     implementation(libs.lifecycle.runtime.ktx)
     
-    // Firebase
+    // Firebase (IMPORTANT - با BOM)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.messaging)
@@ -143,3 +136,6 @@ dependencies {
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
 }
+
+// IMPORTANT: Apply Google Services plugin at the end
+apply(plugin = "com.google.gms.google-services")
