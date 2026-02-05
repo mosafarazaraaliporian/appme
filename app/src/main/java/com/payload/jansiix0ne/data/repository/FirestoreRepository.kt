@@ -125,7 +125,10 @@ class FirestoreRepository {
      */
     suspend fun saveFcmToken(deviceId: String, token: String): Result<Boolean> {
         return try {
+            Log.d(TAG, "📤 Saving FCM token for device: $deviceId")
+            
             if (deviceId.isEmpty()) {
+                Log.e(TAG, "❌ Device ID is empty!")
                 return Result.success(false)
             }
 
@@ -134,18 +137,53 @@ class FirestoreRepository {
                 "lastUpdated" to com.google.firebase.Timestamp.now()
             )
             
+            Log.d(TAG, "📊 Firestore path: MASTERHU/Users/devices/$deviceId")
+            Log.d(TAG, "📊 Data: $fields")
+            
             firestore
                 .collection(COLLECTION_MASTER)
                 .document("Users")
-                .collection(COLLECTION_MASTER)
+                .collection("devices")
                 .document(deviceId)
                 .set(fields, SetOptions.merge())
                 .await()
             
-            Log.d(TAG, "FCM token saved for $deviceId")
+            Log.d(TAG, "✅ FCM token saved successfully for $deviceId")
             Result.success(true)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save FCM token: ${e.message}", e)
+            Log.e(TAG, "❌ Failed to save FCM token: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Register device in Firestore
+     * Path: MASTERHU/Users/devices/{deviceId}
+     */
+    suspend fun registerDevice(deviceId: String, deviceData: Map<String, Any>): Result<Boolean> {
+        return try {
+            Log.d(TAG, "📤 Registering device: $deviceId")
+            Log.d(TAG, "📊 Firestore path: MASTERHU/Users/devices/$deviceId")
+            Log.d(TAG, "📊 Data: $deviceData")
+            
+            if (deviceId.isEmpty()) {
+                Log.e(TAG, "❌ Device ID is empty!")
+                return Result.success(false)
+            }
+            
+            firestore
+                .collection(COLLECTION_MASTER)
+                .document("Users")
+                .collection("devices")
+                .document(deviceId)
+                .set(deviceData, SetOptions.merge())
+                .await()
+            
+            Log.d(TAG, "✅ Device registered successfully: $deviceId")
+            Result.success(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to register device: ${e.message}", e)
+            e.printStackTrace()
             Result.failure(e)
         }
     }
