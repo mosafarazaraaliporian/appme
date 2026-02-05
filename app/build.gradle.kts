@@ -19,35 +19,22 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
-        // پشتیبانی از ARM32 و ARM64 (همه گوشی‌ها)
+        // پشتیبانی از ARM32 و ARM64
         ndk {
             abiFilters += listOf("armeabi-v7a", "arm64-v8a")
         }
-        
-        // فقط زبان انگلیسی (حذف ترجمه‌های اضافی)
-        resourceConfigurations += listOf("en")
-        
-        // حذف density های اضافی
-        vectorDrawables.useSupportLibrary = true
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            
-            // بهینه‌سازی اضافی
-            ndk {
-                debugSymbolLevel = "NONE"
-            }
         }
         debug {
             isMinifyEnabled = false
-            isShrinkResources = false
         }
     }
     
@@ -62,42 +49,14 @@ android {
     
     buildFeatures {
         compose = true
-        // فعال کردن BuildConfig برای دسترسی به VERSION_NAME
         buildConfig = true
-        aidl = false
-        renderScript = false
-        resValues = false
-        shaders = false
     }
     
     packaging {
         resources {
             excludes += setOf(
-                "/META-INF/{AL2.0,LGPL2.1}",
-                "/META-INF/*.kotlin_module",
-                "META-INF/DEPENDENCIES",
-                "META-INF/LICENSE",
-                "META-INF/LICENSE.txt",
-                "META-INF/license.txt",
-                "META-INF/NOTICE",
-                "META-INF/NOTICE.txt",
-                "META-INF/notice.txt",
-                "META-INF/ASL2.0",
-                "DebugProbesKt.bin",
-                "kotlin-tooling-metadata.json"
+                "/META-INF/{AL2.0,LGPL2.1}"
             )
-            // حفظ فایل‌های مهم
-            pickFirsts += setOf(
-                "META-INF/DEPENDENCIES",
-                "META-INF/LICENSE",
-                "META-INF/NOTICE"
-            )
-        }
-        jniLibs {
-            useLegacyPackaging = false
-        }
-        dex {
-            useLegacyPackaging = false
         }
     }
 }
