@@ -101,7 +101,7 @@ jobs:
         find app/build/outputs/apk/release -name "*.apk" -type f || echo "No release APKs found"
     
     - name: Sign Debug APK (if keystore exists)
-      if: ${{ secrets.KEYSTORE_BASE64 }}
+      if: ${{ secrets.KEYSTORE_BASE64 != '' }}
       run: |
         echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
         for apk in app/build/outputs/apk/debug/*.apk; do
@@ -120,7 +120,7 @@ jobs:
       continue-on-error: true
       
     - name: Sign Release APK (if keystore exists)
-      if: ${{ secrets.KEYSTORE_BASE64 }}
+      if: ${{ secrets.KEYSTORE_BASE64 != '' }}
       run: |
         if [ ! -f keystore.jks ]; then
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
