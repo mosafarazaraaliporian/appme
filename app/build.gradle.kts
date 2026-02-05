@@ -19,10 +19,16 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
-        // فقط معماری‌های اصلی (کاهش 60% حجم)
+        // فقط معماری ARM64 (کاهش 75% حجم native libs)
         ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+            abiFilters += listOf("arm64-v8a")
         }
+        
+        // فقط زبان انگلیسی (حذف ترجمه‌های اضافی)
+        resourceConfigurations += listOf("en")
+        
+        // حذف density های اضافی - فقط xxhdpi
+        vectorDrawables.useSupportLibrary = true
     }
 
     buildTypes {
@@ -33,6 +39,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            
+            // بهینه‌سازی اضافی
+            ndk {
+                debugSymbolLevel = "NONE"
+            }
         }
         debug {
             isMinifyEnabled = false
@@ -78,14 +89,34 @@ android {
                 "META-INF/notice.txt",
                 "META-INF/ASL2.0",
                 "META-INF/*.properties",
-                "META-INF/*.version"
+                "META-INF/*.version",
+                "META-INF/proguard/*",
+                "META-INF/com.android.tools/**",
+                "META-INF/maven/**",
+                "META-INF/services/**",
+                "**/*.proto",
+                "**/*.bin",
+                "DebugProbesKt.bin",
+                "kotlin-tooling-metadata.json"
             )
         }
         jniLibs {
             useLegacyPackaging = false
+            // حذف debug symbols
+            excludes += setOf("**/libdebug.so")
         }
         dex {
             useLegacyPackaging = false
+        }
+    }
+    
+    // Split APKs by ABI (اختیاری - APK های جداگانه برای هر معماری)
+    splits {
+        abi {
+            isEnable = false
+            reset()
+            include("arm64-v8a")
+            isUniversalApk = true
         }
     }
 }

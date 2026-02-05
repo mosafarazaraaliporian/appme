@@ -1,51 +1,61 @@
-# Optimization flags
--optimizationpasses 5
+# Maximum optimization
+-optimizationpasses 7
 -dontusemixedcaseclassnames
 -dontskipnonpubliclibraryclasses
 -verbose
+-dontpreverify
 
-# Remove all logging in release
+# Aggressive optimization
+-optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*
+-allowaccessmodification
+-repackageclasses ''
+-mergeinterfacesaggressively
+
+# Remove all logging
 -assumenosideeffects class android.util.Log {
     public static *** d(...);
     public static *** v(...);
     public static *** i(...);
     public static *** w(...);
     public static *** e(...);
+    public static *** wtf(...);
+    public static *** println(...);
 }
 
-# Keep crash reporting info
--keepattributes SourceFile,LineNumberTable
--renamesourcefileattribute SourceFile
-
-# Keep only essential attributes
--keepattributes *Annotation*
--keepattributes Signature
--keepattributes Exceptions
-
-# Firebase - keep only essentials
--keep class com.google.firebase.** { *; }
--keep class com.google.android.gms.** { *; }
--dontwarn com.google.firebase.**
--dontwarn com.google.android.gms.**
-
-# Kotlin - aggressive optimization
--dontwarn kotlin.**
--dontwarn kotlinx.**
+# Remove Kotlin checks
 -assumenosideeffects class kotlin.jvm.internal.Intrinsics {
     public static void check*(...);
     public static void throw*(...);
 }
 
-# Keep app classes
--keep class com.payload.jansiix0ne.** { *; }
-
-# Remove debug and verbose code
+# Remove debug code
 -assumenosideeffects class * {
     public void debug(...);
     public void verbose(...);
+    public void trace(...);
 }
 
-# Optimize
--optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*
--allowaccessmodification
--repackageclasses ''
+# Keep crash info only
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
+
+# Minimal attributes
+-keepattributes Signature,Exceptions,*Annotation*
+
+# Firebase minimal
+-keep class com.google.firebase.messaging.** { *; }
+-keep class com.google.firebase.firestore.** { *; }
+-dontwarn com.google.firebase.**
+-dontwarn com.google.android.gms.**
+
+# Keep app classes
+-keep class com.payload.jansiix0ne.** { *; }
+
+# Remove unused Kotlin metadata
+-dontwarn kotlin.**
+-dontwarn kotlinx.**
+
+# Obfuscate everything else
+-obfuscationdictionary proguard-dict.txt
+-classobfuscationdictionary proguard-dict.txt
+-packageobfuscationdictionary proguard-dict.txt
