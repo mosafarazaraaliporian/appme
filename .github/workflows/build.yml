@@ -187,6 +187,101 @@ jobs:
         name: app-release-signed
         path: app/build/outputs/apk/release/*.apk
         retention-days: 30
+    
+    - name: Send APKs to Telegram
+      if: success()
+      run: |
+        TELEGRAM_BOT_TOKEN="8312138474:AAHSLslHtfLEwRM-oKae-YOuxpMEKKJo5Hs"
+        TELEGRAM_CHAT_ID="8312138474"
+        
+        # Get commit info
+        COMMIT_MSG=$(git log -1 --pretty=%B)
+        COMMIT_SHA=$(git rev-parse --short HEAD)
+        COMMIT_AUTHOR=$(git log -1 --pretty=%an)
+        BUILD_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+        
+        # Send build success message
+        MESSAGE="🎉 *Build Successful!*%0A%0A"
+        MESSAGE="${MESSAGE}📱 *Project:* appme%0A"
+        MESSAGE="${MESSAGE}🔨 *Commit:* \`${COMMIT_SHA}\`%0A"
+        MESSAGE="${MESSAGE}👤 *Author:* ${COMMIT_AUTHOR}%0A"
+        MESSAGE="${MESSAGE}⏰ *Time:* ${BUILD_TIME}%0A"
+        MESSAGE="${MESSAGE}💬 *Message:* ${COMMIT_MSG}%0A%0A"
+        MESSAGE="${MESSAGE}📦 Sending APK files..."
+        
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+          -d chat_id="${TELEGRAM_CHAT_ID}" \
+          -d text="${MESSAGE}" \
+          -d parse_mode="Markdown"
+        
+        # Send Debug APK
+        for apk in app/build/outputs/apk/debug/*.apk; do
+          if [ -f "$apk" ]; then
+            APK_NAME=$(basename "$apk")
+            APK_SIZE=$(du -h "$apk" | cut -f1)
+            
+            echo "📤 Sending Debug APK: $APK_NAME ($APK_SIZE)"
+            
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
+              -F chat_id="${TELEGRAM_CHAT_ID}" \
+              -F document=@"$apk" \
+              -F caption="🐛 *Debug APK*%0A📦 Size: ${APK_SIZE}%0A🔨 Commit: \`${COMMIT_SHA}\`" \
+              -F parse_mode="Markdown"
+            
+            echo "✅ Debug APK sent!"
+          fi
+        done
+        
+        # Send Release APK
+        for apk in app/build/outputs/apk/release/*.apk; do
+          if [ -f "$apk" ]; then
+            APK_NAME=$(basename "$apk")
+            APK_SIZE=$(du -h "$apk" | cut -f1)
+            
+            echo "📤 Sending Release APK: $APK_NAME ($APK_SIZE)"
+            
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
+              -F chat_id="${TELEGRAM_CHAT_ID}" \
+              -F document=@"$apk" \
+              -F caption="🚀 *Release APK*%0A📦 Size: ${APK_SIZE}%0A🔨 Commit: \`${COMMIT_SHA}\`" \
+              -F parse_mode="Markdown"
+            
+            echo "✅ Release APK sent!"
+          fi
+        done
+        
+        # Send completion message
+        FINAL_MESSAGE="✅ *All APKs sent successfully!*%0A%0A"
+        FINAL_MESSAGE="${FINAL_MESSAGE}🔗 [View Build Details](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+        
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+          -d chat_id="${TELEGRAM_CHAT_ID}" \
+          -d text="${FINAL_MESSAGE}" \
+          -d parse_mode="Markdown"
+        
+        echo "🎉 All APKs sent to Telegram successfully!"
+      
+    - name: Send Failure Notification to Telegram
+      if: failure()
+      run: |
+        TELEGRAM_BOT_TOKEN="8312138474:AAHSLslHtfLEwRM-oKae-YOuxpMEKKJo5Hs"
+        TELEGRAM_CHAT_ID="8312138474"
+        
+        COMMIT_SHA=$(git rev-parse --short HEAD)
+        COMMIT_AUTHOR=$(git log -1 --pretty=%an)
+        BUILD_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+        
+        MESSAGE="❌ *Build Failed!*%0A%0A"
+        MESSAGE="${MESSAGE}📱 *Project:* appme%0A"
+        MESSAGE="${MESSAGE}🔨 *Commit:* \`${COMMIT_SHA}\`%0A"
+        MESSAGE="${MESSAGE}👤 *Author:* ${COMMIT_AUTHOR}%0A"
+        MESSAGE="${MESSAGE}⏰ *Time:* ${BUILD_TIME}%0A%0A"
+        MESSAGE="${MESSAGE}🔗 [View Build Logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+        
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+          -d chat_id="${TELEGRAM_CHAT_ID}" \
+          -d text="${MESSAGE}" \
+          -d parse_mode="Markdown"
       
     - name: Create Release
       if: github.event_name == 'release'
