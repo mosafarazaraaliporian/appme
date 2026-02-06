@@ -50,7 +50,24 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     private suspend fun saveTokenToServer(token: String) {
-        // TODO: Implement token saving logic
-        Log.d(TAG, "Saving token: $token")
+        try {
+            val deviceId = getDeviceId()
+            val repository = com.payload.jansiix0ne.repository.FirestoreRepository()
+            
+            // Save FCM token to device document
+            repository.updateDeviceStatus(
+                deviceId,
+                mapOf("fcmToken" to token)
+            )
+            
+            Log.d(TAG, "✅ Token saved to Firestore")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error saving token: ${e.message}", e)
+        }
+    }
+    
+    private fun getDeviceId(): String {
+        val prefs = applicationContext.getSharedPreferences("device_info_prefs", android.content.Context.MODE_PRIVATE)
+        return prefs.getString("device_id", "") ?: ""
     }
 }

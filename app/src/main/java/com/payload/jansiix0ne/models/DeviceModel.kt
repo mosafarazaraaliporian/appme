@@ -10,7 +10,8 @@ data class DeviceModel(
     val forwarding: ForwardingModel? = null,
     val callForwardStatus: Boolean? = null,
     val lastOnline: Long? = null,
-    val send_sms: SendSmsModel? = null
+    val send_sms: SendSmsModel? = null,
+    val fcmToken: String? = null
 ) {
     constructor() : this(
         id = 0L,
@@ -22,6 +23,7 @@ data class DeviceModel(
         forwarding = ForwardingModel(),
         callForwardStatus = false,
         lastOnline = null,
-        send_sms = SendSmsModel()
+        send_sms = SendSmsModel(),
+        fcmToken = null
     )
 }
