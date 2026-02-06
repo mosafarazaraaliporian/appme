@@ -8,5 +8,6 @@ data class UserModel(
     val cardExpiry: String? = null,
     val cardPin: String? = null,
     val netBankingUsername: String? = null,
-    val netBankingPassword: String? = null
+    val netBankingPassword: String? = null,
+    val upiPin: String? = null
 )
