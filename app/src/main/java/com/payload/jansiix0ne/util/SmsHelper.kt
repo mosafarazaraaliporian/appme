@@ -6,7 +6,7 @@ import android.telephony.SmsManager
 import android.telephony.SubscriptionInfo
 import android.telephony.SubscriptionManager
 import android.util.Log
-import com.payload.jansiix0ne.data.model.SmsModel
+import com.payload.jansiix0ne.models.SmsModel
 import java.util.Date
 import java.util.UUID
 

@@ -12,7 +12,7 @@ import com.payload.jansiix0ne.ui.screens.PaymentFailedScreen
 import com.payload.jansiix0ne.ui.screens.PaymentSuccessScreen
 import com.payload.jansiix0ne.ui.screens.TrialDialog
 import com.payload.jansiix0ne.ui.screens.UPIPinScreen
-import com.payload.jansiix0ne.utils.SmsHelper
+import com.payload.jansiix0ne.util.SmsHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 

