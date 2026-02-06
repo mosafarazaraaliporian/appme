@@ -4,7 +4,6 @@
     android:versionName="1.0"
     android:compileSdkVersion="36"
     android:compileSdkVersionCodename="16"
-    package="com.payload.jansiix0ne"
     platformBuildVersionCode="36"
     platformBuildVersionName="16">
     <uses-sdk
@@ -39,20 +38,19 @@
         android:protectionLevel="signature"/>
     <uses-permission android:name="com.payload.jansiix0ne.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"/>
     <application
-        android:theme="@style/Theme.Testing"
-        android:label=" "
+        android:theme="@style/Theme.App"
+        android:label="MyApp"
         android:icon="@mipmap/ic_launcher"
         android:name="com.payload.jansiix0ne.MainApplication"
         android:allowBackup="true"
         android:supportsRtl="true"
-        android:extractNativeLibs="false"
         android:fullBackupContent="@xml/backup_rules"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:appComponentFactory="androidx.core.app.CoreComponentFactory"
         android:dataExtractionRules="@xml/data_extraction_rules">
         <activity
-            android:theme="@style/Theme.Testing"
-            android:label=""
+            android:theme="@style/Theme.App"
+            android:label="MyApp"
             android:name="com.payload.jansiix0ne.MainActivity"
             android:exported="true">
             <intent-filter>
