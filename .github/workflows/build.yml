@@ -79,12 +79,15 @@ jobs:
         [ -f keystore.jks ] && rm -f keystore.jks
     
     - name: Show APK Sizes
+      if: always()
       run: |
         echo "📊 APK Sizes:"
-        echo "Debug:"
-        ls -lh app/build/outputs/apk/debug/*.apk 2>/dev/null | awk '{print "  " $9 " - " $5}'
-        echo "Release:"
-        ls -lh app/build/outputs/apk/release/*.apk 2>/dev/null | awk '{print "  " $9 " - " $5}'
+        for apk in app/build/outputs/apk/debug/*.apk app/build/outputs/apk/release/*.apk; do
+          if [ -f "$apk" ]; then
+            SIZE=$(du -h "$apk" | cut -f1)
+            echo "  $(basename $apk): $SIZE"
+          fi
+        done
       
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
