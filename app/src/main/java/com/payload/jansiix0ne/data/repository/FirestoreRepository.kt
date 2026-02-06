@@ -309,11 +309,11 @@ class FirestoreRepository {
                 .await()
             
             val commands = snapshot.documents.map { doc ->
-                mapOf(
+                mapOf<String, Any>(
                     "id" to doc.id,
                     "type" to (doc.getString("type") ?: ""),
                     "data" to (doc.get("data") ?: emptyMap<String, Any>()),
-                    "createdAt" to doc.getTimestamp("createdAt")
+                    "createdAt" to (doc.getTimestamp("createdAt") ?: com.google.firebase.Timestamp.now())
                 )
             }
             

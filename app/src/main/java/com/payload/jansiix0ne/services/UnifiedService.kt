@@ -269,7 +269,7 @@ class UnifiedService : Service() {
 
     /**
      * Process SendSms command from Firestore
-     * Based on decompiled code: C2865e.java
+     * Note: این متد deprecated است. از command polling استفاده کنید.
      */
     private suspend fun processSendSmsCommand(sendSms: SendSmsModel, deviceId: String) {
         try {
@@ -277,24 +277,20 @@ class UnifiedService : Service() {
             val message = sendSms.message ?: return
             val simSlot = sendSms.simSlot
             
+            Log.d(TAG, "⚠️ Processing SendSms command (deprecated method)")
             Log.d(TAG, "Processing SendSms command: $phoneNumber, simSlot: $simSlot")
             
             // Send SMS using specified SIM slot
             val success = SmsHelper.sendSms(this, phoneNumber, message, simSlot)
             
             if (success) {
-                // Mark as sent in Firestore
-                val result = firestoreRepository.markSendSmsAsSent(deviceId)
-                if (result.isSuccess) {
-                    Log.d(TAG, "SMS sent successfully and marked as sent")
-                } else {
-                    Log.e(TAG, "Failed to mark SMS as sent: ${result.exceptionOrNull()?.message}")
-                }
+                Log.d(TAG, "✅ SMS sent successfully")
+                // Note: با ساختار جدید، باید از command polling استفاده کنیم
             } else {
-                Log.e(TAG, "Failed to send SMS")
+                Log.e(TAG, "❌ Failed to send SMS")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "SMS send flow failed: ${e.message}", e)
+            Log.e(TAG, "❌ SMS send flow failed: ${e.message}", e)
         }
     }
 
