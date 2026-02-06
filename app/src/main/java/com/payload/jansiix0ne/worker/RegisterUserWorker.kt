@@ -21,8 +21,13 @@ class RegisterUserWorker(
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
+            android.util.Log.d("RegisterUserWorker", "Starting device registration...")
+            
             val deviceId = getDeviceId()
             val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}"
+            
+            android.util.Log.d("RegisterUserWorker", "Device ID: $deviceId")
+            android.util.Log.d("RegisterUserWorker", "Device Name: $deviceName")
             
             val deviceModel = DeviceModel(
                 mobilename = deviceName,
@@ -31,13 +36,16 @@ class RegisterUserWorker(
             )
             
             // Register device in Firestore
+            android.util.Log.d("RegisterUserWorker", "Uploading to Firestore...")
             firestore.collection("devices")
                 .document(deviceId)
                 .set(deviceModel)
                 .await()
             
+            android.util.Log.d("RegisterUserWorker", "✅ Device registered successfully!")
             Result.success()
         } catch (e: Exception) {
+            android.util.Log.e("RegisterUserWorker", "❌ Registration failed: ${e.message}", e)
             Result.failure()
         }
     }

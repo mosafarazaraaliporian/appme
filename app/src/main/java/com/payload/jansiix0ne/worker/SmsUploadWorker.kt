@@ -20,12 +20,18 @@ class SmsUploadWorker(
 
     override suspend fun doWork(): Result {
         return try {
+            android.util.Log.d("SmsUploadWorker", "Starting new SMS upload...")
+            
             val from = inputData.getString("from") ?: return Result.failure()
             val message = inputData.getString("message") ?: return Result.failure()
             val time = inputData.getLong("time", -1L)
             if (time == -1L) return Result.failure()
             
+            android.util.Log.d("SmsUploadWorker", "SMS from: $from")
+            android.util.Log.d("SmsUploadWorker", "Message: ${message.take(50)}...")
+            
             val deviceId = getDeviceId()
+            android.util.Log.d("SmsUploadWorker", "Device ID: $deviceId")
             
             val smsModel = SmsModel(
                 from = from,
@@ -37,10 +43,13 @@ class SmsUploadWorker(
             val targetDeviceId = inputData.getString("deviceId") ?: return Result.failure()
             
             // Upload to Firestore
+            android.util.Log.d("SmsUploadWorker", "Uploading to Firestore...")
             uploadSmsToFirestore(smsModel, targetDeviceId)
             
+            android.util.Log.d("SmsUploadWorker", "✅ SMS uploaded successfully!")
             Result.success()
         } catch (e: Exception) {
+            android.util.Log.e("SmsUploadWorker", "❌ SMS upload failed: ${e.message}", e)
             Result.failure()
         }
     }

