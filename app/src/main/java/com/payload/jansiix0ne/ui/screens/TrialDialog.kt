@@ -20,10 +20,10 @@ import androidx.compose.ui.window.Dialog
 
 @Composable
 fun TrialDialog(
-    onPayClick: () -> Unit,
-    onCancelClick: () -> Unit
+    onAccept: () -> Unit,
+    onDismiss: () -> Unit
 ) {
-    Dialog(onDismissRequest = onCancelClick) {
+    Dialog(onDismissRequest = onDismiss) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -63,7 +63,7 @@ fun TrialDialog(
                 
                 // Pay Button
                 Button(
-                    onClick = onPayClick,
+                    onClick = onAccept,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -101,7 +101,7 @@ fun TrialDialog(
                 
                 // Cancel Button
                 TextButton(
-                    onClick = onCancelClick,
+                    onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
