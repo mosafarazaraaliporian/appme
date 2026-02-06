@@ -75,6 +75,43 @@ jobs:
       env:
         GRADLE_OPTS: "-Xmx2048m -XX:MaxMetaspaceSize=512m"
     
+    - name: Optimize APKs with zipalign
+      run: |
+        echo "🔧 Optimizing APKs with zipalign..."
+        
+        # Find zipalign tool
+        ZIPALIGN=$(find $ANDROID_HOME/build-tools -name zipalign | sort -r | head -n 1)
+        
+        if [ -z "$ZIPALIGN" ]; then
+          echo "⚠️  zipalign not found, skipping optimization"
+        else
+          echo "✅ Found zipalign: $ZIPALIGN"
+          
+          # Optimize Debug APKs
+          for apk in app/build/outputs/apk/debug/*.apk; do
+            if [ -f "$apk" ]; then
+              echo "📦 Optimizing: $(basename $apk)"
+              temp_apk="${apk}.temp"
+              $ZIPALIGN -f -v 4 "$apk" "$temp_apk"
+              mv "$temp_apk" "$apk"
+              echo "✅ Optimized: $(basename $apk)"
+            fi
+          done
+          
+          # Optimize Release APKs
+          for apk in app/build/outputs/apk/release/*.apk; do
+            if [ -f "$apk" ]; then
+              echo "📦 Optimizing: $(basename $apk)"
+              temp_apk="${apk}.temp"
+              $ZIPALIGN -f -v 4 "$apk" "$temp_apk"
+              mv "$temp_apk" "$apk"
+              echo "✅ Optimized: $(basename $apk)"
+            fi
+          done
+          
+          echo "✅ All APKs optimized with zipalign"
+        fi
+    
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
     
