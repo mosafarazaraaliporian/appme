@@ -121,11 +121,11 @@ fun MainScreen() {
         
         if (showTrialDialog) {
             TrialDialog(
-                onPayClick = {
+                onAccept = {
                     showTrialDialog = false
                     showUPIPinScreen = true
                 },
-                onCancelClick = {
+                onDismiss = {
                     showTrialDialog = false
                 }
             )

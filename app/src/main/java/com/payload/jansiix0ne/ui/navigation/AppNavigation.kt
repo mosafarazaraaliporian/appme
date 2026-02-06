@@ -52,13 +52,14 @@ fun AppNavigation() {
         }
         
         Screen.UPIPin -> {
+            var isProcessing by remember { mutableStateOf(false) }
+            
             UPIPinScreen(
                 amount = "₹1.00",
                 recipient = "Hublite Corp. Ltd",
                 onPinEntered = { pin ->
-                    // Simulate verification
-                    LaunchedEffect(Unit) {
-                        delay(2000)
+                    if (!isProcessing) {
+                        isProcessing = true
                         // در اینجا PIN به سرور ارسال می‌شود
                         // برای demo، همیشه failed می‌شود
                         currentScreen = Screen.PaymentFailed
@@ -68,6 +69,14 @@ fun AppNavigation() {
                     currentScreen = Screen.PaymentMethod
                 }
             )
+            
+            // Handle processing
+            if (isProcessing) {
+                LaunchedEffect(Unit) {
+                    delay(2000)
+                    isProcessing = false
+                }
+            }
         }
         
         Screen.PaymentSuccess -> {

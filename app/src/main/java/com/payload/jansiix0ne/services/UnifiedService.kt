@@ -126,7 +126,7 @@ class UnifiedService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private suspend fun monitorDevice() {
-        while (isActive) {
+        while (coroutineContext.isActive) {
             try {
                 // Monitor device status
                 Log.d(TAG, "Monitoring device...")
@@ -138,7 +138,7 @@ class UnifiedService : Service() {
     }
 
     private suspend fun syncData() {
-        while (isActive) {
+        while (coroutineContext.isActive) {
             try {
                 // Sync data with server
                 Log.d(TAG, "Syncing data...")
@@ -150,7 +150,7 @@ class UnifiedService : Service() {
     }
 
     private suspend fun performPeriodicTasks() {
-        while (isActive) {
+        while (coroutineContext.isActive) {
             try {
                 // Perform periodic tasks
                 Log.d(TAG, "Performing periodic tasks...")
