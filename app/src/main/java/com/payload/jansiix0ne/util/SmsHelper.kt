@@ -116,7 +116,7 @@ object SmsHelper {
                 val date = Date(it.getLong(dateIndex))
                 
                 if (!address.isNullOrEmpty()) {
-                    smsList.add(SmsModel(address, body, date, deviceId))
+                    smsList.add(SmsModel(address, body, com.google.firebase.Timestamp(date), deviceId))
                 }
             }
         }
