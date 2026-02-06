@@ -23,6 +23,14 @@ android {
         ndk {
             abiFilters += listOf("armeabi-v7a", "arm64-v8a")
         }
+        
+        // Vector drawables support
+        vectorDrawables {
+            useSupportLibrary = true
+        }
+        
+        // Exclude unused resources
+        resourceConfigurations += listOf("en", "xxhdpi")
     }
 
     buildTypes {
