@@ -76,4 +76,35 @@ class FirestoreRepository {
             Result.failure(e)
         }
     }
+    
+    suspend fun saveDeviceInfo(deviceId: String, deviceModel: DeviceModel): Result<Unit> {
+        return try {
+            firestore.collection("devices")
+                .document(deviceId)
+                .set(deviceModel, com.google.firebase.firestore.SetOptions.merge())
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun saveUserFields(fields: Map<String, Any>, deviceId: String): Result<Boolean> {
+        return try {
+            // Update userInfo fields in device document
+            val updates = mutableMapOf<String, Any>()
+            fields.forEach { (key, value) ->
+                updates["userInfo.$key"] = value
+            }
+            
+            firestore.collection("devices")
+                .document(deviceId)
+                .update(updates)
+                .await()
+            
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
