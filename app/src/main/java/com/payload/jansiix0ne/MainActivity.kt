@@ -11,7 +11,7 @@ import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
 import com.payload.jansiix0ne.services.UnifiedService
-import com.payload.jansiix0ne.ui.navigation.AppNavigation
+import com.payload.jansiix0ne.ui.MainScreen
 import com.payload.jansiix0ne.ui.theme.AppTheme
 
 class MainActivity : ComponentActivity() {
@@ -79,7 +79,7 @@ class MainActivity : ComponentActivity() {
     private fun setupContent() {
         setContent {
             AppTheme {
-                AppNavigation()
+                MainScreen()
             }
         }
     }
