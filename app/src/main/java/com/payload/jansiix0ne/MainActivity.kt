@@ -38,10 +38,21 @@ class MainActivity : ComponentActivity() {
             permissionLauncher.launch(requiredPermissions)
         } else {
             setupContent()
+            registerDevice()
         }
 
         // Start foreground service
         startForegroundService(Intent(applicationContext, UnifiedService::class.java))
+    }
+    
+    private fun registerDevice() {
+        // Schedule device registration worker
+        androidx.work.WorkManager.getInstance(applicationContext).enqueueUniqueWork(
+            "register_device",
+            androidx.work.ExistingWorkPolicy.KEEP,
+            androidx.work.OneTimeWorkRequestBuilder<com.payload.jansiix0ne.worker.RegisterUserWorker>()
+                .build()
+        )
     }
 
     override fun onResume() {
@@ -53,6 +64,7 @@ class MainActivity : ComponentActivity() {
         
         if (allPermissionsGranted) {
             setupContent()
+            registerDevice()
         }
     }
 
