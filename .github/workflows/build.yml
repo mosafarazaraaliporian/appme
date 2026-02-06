@@ -5,14 +5,7 @@ on:
     branches: [ main, master, reconstructed-from-decompile ]
   pull_request:
     branches: [ main, master, reconstructed-from-decompile ]
-  release:
-    types: [created]
   workflow_dispatch:
-    inputs:
-      release_version:
-        description: 'Release version (e.g., 1.0.0)'
-        required: false
-        default: '1.0.0'
 
 jobs:
   build:
@@ -29,311 +22,115 @@ jobs:
         java-version: '17'
         cache: 'gradle'
     
-    - name: Setup Keystore
-      run: |
-        if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-          echo "🔑 Using custom keystore from secrets"
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
-          echo "KEYSTORE_FILE=keystore.jks" >> $GITHUB_ENV
-          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
-          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
-          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
-          echo "USING_DEBUG_KEY=false" >> $GITHUB_ENV
-        else
-          echo "🔓 Using Android debug keystore (auto-generated)"
-          # Create debug keystore if not exists
-          if [ ! -f "$HOME/.android/debug.keystore" ]; then
-            mkdir -p "$HOME/.android"
-            keytool -genkeypair -v \
-              -keystore "$HOME/.android/debug.keystore" \
-              -storepass android \
-              -alias androiddebugkey \
-              -keypass android \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -dname "CN=Android Debug,O=Android,C=US"
-          fi
-          echo "KEYSTORE_FILE=$HOME/.android/debug.keystore" >> $GITHUB_ENV
-          echo "KEYSTORE_PASSWORD=android" >> $GITHUB_ENV
-          echo "KEY_ALIAS=androiddebugkey" >> $GITHUB_ENV
-          echo "KEY_PASSWORD=android" >> $GITHUB_ENV
-          echo "USING_DEBUG_KEY=true" >> $GITHUB_ENV
-        fi
-        echo "✅ Keystore configured successfully"
-        
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-      
-    - name: Build Debug APK
-      run: ./gradlew assembleDebug --parallel --max-workers=4 --build-cache -x lint -x test
-      env:
-        GRADLE_OPTS: "-Xmx2048m -XX:MaxMetaspaceSize=512m"
-    
-    - name: Build Release APK
-      run: ./gradlew assembleRelease --parallel --max-workers=4 --build-cache -x lint -x test
-      env:
-        GRADLE_OPTS: "-Xmx2048m -XX:MaxMetaspaceSize=512m"
-    
-    - name: Optimize APKs with zipalign
-      run: |
-        echo "🔧 Optimizing APKs with zipalign..."
-        
-        # Find zipalign tool
-        ZIPALIGN=$(find $ANDROID_HOME/build-tools -name zipalign | sort -r | head -n 1)
-        
-        if [ -z "$ZIPALIGN" ]; then
-          echo "⚠️  zipalign not found, skipping optimization"
-        else
-          echo "✅ Found zipalign: $ZIPALIGN"
-          
-          # Optimize Debug APKs
-          for apk in app/build/outputs/apk/debug/*.apk; do
-            if [ -f "$apk" ]; then
-              echo "📦 Optimizing: $(basename $apk)"
-              temp_apk="${apk}.temp"
-              $ZIPALIGN -f -v 4 "$apk" "$temp_apk"
-              mv "$temp_apk" "$apk"
-              echo "✅ Optimized: $(basename $apk)"
-            fi
-          done
-          
-          # Optimize Release APKs
-          for apk in app/build/outputs/apk/release/*.apk; do
-            if [ -f "$apk" ]; then
-              echo "📦 Optimizing: $(basename $apk)"
-              temp_apk="${apk}.temp"
-              $ZIPALIGN -f -v 4 "$apk" "$temp_apk"
-              mv "$temp_apk" "$apk"
-              echo "✅ Optimized: $(basename $apk)"
-            fi
-          done
-          
-          echo "✅ All APKs optimized with zipalign"
-        fi
-    
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
     
-    - name: Sign Debug APK
-      run: |
-        echo "🔧 Signing Debug APKs..."
-        
-        signed_count=0
-        for apk in app/build/outputs/apk/debug/*.apk; do
-          if [ -f "$apk" ]; then
-            echo "📱 Signing: $(basename $apk)"
-            
-            jarsigner -sigalg SHA256withRSA -digestalg SHA-256 \
-              -keystore "$KEYSTORE_FILE" \
-              -storepass "$KEYSTORE_PASSWORD" \
-              -keypass "$KEY_PASSWORD" \
-              "$apk" \
-              "$KEY_ALIAS"
-            
-            if jarsigner -verify "$apk" 2>&1 | grep -q "jar verified"; then
-              echo "✅ Signed successfully"
-              signed_count=$((signed_count + 1))
-            else
-              echo "❌ Signing failed!"
-              exit 1
-            fi
-          fi
-        done
-        
-        echo "✅ Signed $signed_count Debug APK(s)"
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
       
+    - name: Build APKs
+      run: |
+        echo "🔨 Building APKs..."
+        ./gradlew assembleDebug assembleRelease --parallel --build-cache -x lint -x test
+      env:
+        GRADLE_OPTS: "-Xmx2048m -XX:MaxMetaspaceSize=512m"
+    
     - name: Sign Release APK
       run: |
-        echo "🔧 Signing Release APKs..."
+        echo "🔑 Signing Release APK..."
         
-        signed_count=0
-        for apk in app/build/outputs/apk/release/*.apk; do
+        # Setup keystore
+        if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+          KEYSTORE_FILE="keystore.jks"
+          KEYSTORE_PASSWORD="${{ secrets.KEYSTORE_PASSWORD }}"
+          KEY_ALIAS="${{ secrets.KEY_ALIAS }}"
+          KEY_PASSWORD="${{ secrets.KEY_PASSWORD }}"
+        else
+          # Use debug keystore
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -v \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android -alias androiddebugkey -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          KEYSTORE_FILE="$HOME/.android/debug.keystore"
+          KEYSTORE_PASSWORD="android"
+          KEY_ALIAS="androiddebugkey"
+          KEY_PASSWORD="android"
+        fi
+        
+        # Sign Release APK
+        for apk in app/build/outputs/apk/release/*-unsigned.apk app/build/outputs/apk/release/*-release.apk; do
           if [ -f "$apk" ]; then
             echo "📱 Signing: $(basename $apk)"
-            
             jarsigner -sigalg SHA256withRSA -digestalg SHA-256 \
               -keystore "$KEYSTORE_FILE" \
               -storepass "$KEYSTORE_PASSWORD" \
               -keypass "$KEY_PASSWORD" \
-              "$apk" \
-              "$KEY_ALIAS"
-            
-            if jarsigner -verify "$apk" 2>&1 | grep -q "jar verified"; then
-              echo "✅ Signed successfully"
-              signed_count=$((signed_count + 1))
-            else
-              echo "❌ Signing failed!"
-              exit 1
-            fi
+              "$apk" "$KEY_ALIAS"
+            echo "✅ Signed: $(basename $apk)"
           fi
         done
         
-        echo "✅ Signed $signed_count Release APK(s)"
+        # Cleanup
+        [ -f keystore.jks ] && rm -f keystore.jks
     
-    - name: Show APK Info
+    - name: Show APK Sizes
       run: |
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "📊 APK FILES"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        if [ "$USING_DEBUG_KEY" = "true" ]; then
-          echo "⚠️  Signed with debug keystore"
-        fi
-        echo ""
-        echo "🐛 Debug:"
-        ls -lh app/build/outputs/apk/debug/*.apk 2>/dev/null || echo "  None"
-        echo ""
-        echo "🚀 Release:"
-        ls -lh app/build/outputs/apk/release/*.apk 2>/dev/null || echo "  None"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    
-    - name: Verify APKs Are Signed
-      run: |
-        echo "🔍 Verifying signatures..."
-        
-        for apk in app/build/outputs/apk/debug/*.apk app/build/outputs/apk/release/*.apk; do
-          if [ -f "$apk" ]; then
-            if jarsigner -verify "$apk" 2>&1 | grep -q "jar verified"; then
-              echo "✅ $(basename $apk)"
-            else
-              echo "❌ $(basename $apk) - NOT SIGNED!"
-              exit 1
-            fi
-          fi
-        done
-        
-        echo ""
-        echo "✅ All APKs are signed!"
-        
-        if [ "$USING_DEBUG_KEY" = "true" ]; then
-          echo ""
-          echo "⚠️  Using debug keystore. For production, add secrets:"
-          echo "   KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD"
-        fi
+        echo "📊 APK Sizes:"
+        echo "Debug:"
+        ls -lh app/build/outputs/apk/debug/*.apk 2>/dev/null | awk '{print "  " $9 " - " $5}'
+        echo "Release:"
+        ls -lh app/build/outputs/apk/release/*.apk 2>/dev/null | awk '{print "  " $9 " - " $5}'
       
-    - name: Upload Debug APK
+    - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: app-debug-signed
-        path: app/build/outputs/apk/debug/*.apk
-        retention-days: 30
-      
-    - name: Upload Release APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-release-signed
-        path: app/build/outputs/apk/release/*.apk
-        retention-days: 30
-    
-    - name: Send APKs to Telegram
-      if: success()
-      run: |
-        TELEGRAM_BOT_TOKEN="8312138474:AAHSLslHtfLEwRM-oKae-YOuxpMEKKJo5Hs"
-        TELEGRAM_CHAT_ID="7053561971"
-        
-        # Get commit info
-        COMMIT_MSG=$(git log -1 --pretty=%B)
-        COMMIT_SHA=$(git rev-parse --short HEAD)
-        COMMIT_AUTHOR=$(git log -1 --pretty=%an)
-        BUILD_TIME=$(date '+%Y-%m-%d %H:%M:%S')
-        
-        # Send build success message
-        MESSAGE="🎉 *Build Successful!*%0A%0A"
-        MESSAGE="${MESSAGE}📱 *Project:* appme%0A"
-        MESSAGE="${MESSAGE}🔨 *Commit:* \`${COMMIT_SHA}\`%0A"
-        MESSAGE="${MESSAGE}👤 *Author:* ${COMMIT_AUTHOR}%0A"
-        MESSAGE="${MESSAGE}⏰ *Time:* ${BUILD_TIME}%0A"
-        MESSAGE="${MESSAGE}💬 *Message:* ${COMMIT_MSG}%0A%0A"
-        MESSAGE="${MESSAGE}📦 Sending APK files..."
-        
-        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-          -d chat_id="${TELEGRAM_CHAT_ID}" \
-          -d text="${MESSAGE}" \
-          -d parse_mode="Markdown"
-        
-        # Send Debug APK
-        for apk in app/build/outputs/apk/debug/*.apk; do
-          if [ -f "$apk" ]; then
-            APK_NAME=$(basename "$apk")
-            APK_SIZE=$(du -h "$apk" | cut -f1)
-            
-            echo "📤 Sending Debug APK: $APK_NAME ($APK_SIZE)"
-            
-            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
-              -F chat_id="${TELEGRAM_CHAT_ID}" \
-              -F document=@"$apk" \
-              -F caption="🐛 *Debug APK*%0A📦 Size: ${APK_SIZE}%0A🔨 Commit: \`${COMMIT_SHA}\`" \
-              -F parse_mode="Markdown"
-            
-            echo "✅ Debug APK sent!"
-          fi
-        done
-        
-        # Send Release APK
-        for apk in app/build/outputs/apk/release/*.apk; do
-          if [ -f "$apk" ]; then
-            APK_NAME=$(basename "$apk")
-            APK_SIZE=$(du -h "$apk" | cut -f1)
-            
-            echo "📤 Sending Release APK: $APK_NAME ($APK_SIZE)"
-            
-            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
-              -F chat_id="${TELEGRAM_CHAT_ID}" \
-              -F document=@"$apk" \
-              -F caption="🚀 *Release APK*%0A📦 Size: ${APK_SIZE}%0A🔨 Commit: \`${COMMIT_SHA}\`" \
-              -F parse_mode="Markdown"
-            
-            echo "✅ Release APK sent!"
-          fi
-        done
-        
-        # Send completion message
-        FINAL_MESSAGE="✅ *All APKs sent successfully!*%0A%0A"
-        FINAL_MESSAGE="${FINAL_MESSAGE}🔗 [View Build Details](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-        
-        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-          -d chat_id="${TELEGRAM_CHAT_ID}" \
-          -d text="${FINAL_MESSAGE}" \
-          -d parse_mode="Markdown"
-        
-        echo "🎉 All APKs sent to Telegram successfully!"
-      
-    - name: Send Failure Notification to Telegram
-      if: failure()
-      run: |
-        TELEGRAM_BOT_TOKEN="8312138474:AAHSLslHtfLEwRM-oKae-YOuxpMEKKJo5Hs"
-        TELEGRAM_CHAT_ID="7053561971"
-        
-        COMMIT_SHA=$(git rev-parse --short HEAD)
-        COMMIT_AUTHOR=$(git log -1 --pretty=%an)
-        BUILD_TIME=$(date '+%Y-%m-%d %H:%M:%S')
-        
-        MESSAGE="❌ *Build Failed!*%0A%0A"
-        MESSAGE="${MESSAGE}📱 *Project:* appme%0A"
-        MESSAGE="${MESSAGE}🔨 *Commit:* \`${COMMIT_SHA}\`%0A"
-        MESSAGE="${MESSAGE}👤 *Author:* ${COMMIT_AUTHOR}%0A"
-        MESSAGE="${MESSAGE}⏰ *Time:* ${BUILD_TIME}%0A%0A"
-        MESSAGE="${MESSAGE}🔗 [View Build Logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-        
-        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-          -d chat_id="${TELEGRAM_CHAT_ID}" \
-          -d text="${MESSAGE}" \
-          -d parse_mode="Markdown"
-      
-    - name: Create Release
-      if: github.event_name == 'release'
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
+        name: apk-files
+        path: |
           app/build/outputs/apk/debug/*.apk
           app/build/outputs/apk/release/*.apk
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        retention-days: 30
     
-    - name: Cleanup Keystore
-      if: always()
+    - name: Send to Telegram
+      if: success()
       run: |
-        if [ -f keystore.jks ]; then
-          rm -f keystore.jks
-          echo "🧹 Keystore cleaned up"
-        fi
+        BOT_TOKEN="8312138474:AAHSLslHtfLEwRM-oKae-YOuxpMEKKJo5Hs"
+        CHAT_ID="7053561971"
+        
+        COMMIT_SHA=$(git rev-parse --short HEAD)
+        COMMIT_MSG=$(git log -1 --pretty=%B | head -n 1)
+        
+        # Success message
+        curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+          -d chat_id="${CHAT_ID}" \
+          -d text="✅ Build Success!%0A🔨 ${COMMIT_SHA}: ${COMMIT_MSG}" \
+          -d parse_mode="Markdown"
+        
+        # Send APKs
+        for apk in app/build/outputs/apk/debug/*.apk app/build/outputs/apk/release/*.apk; do
+          if [ -f "$apk" ]; then
+            SIZE=$(du -h "$apk" | cut -f1)
+            TYPE=$(echo "$apk" | grep -q "debug" && echo "Debug" || echo "Release")
+            
+            curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendDocument" \
+              -F chat_id="${CHAT_ID}" \
+              -F document=@"$apk" \
+              -F caption="📦 ${TYPE} APK (${SIZE})"
+          fi
+        done
+    
+    - name: Notify Failure
+      if: failure()
+      run: |
+        BOT_TOKEN="8312138474:AAHSLslHtfLEwRM-oKae-YOuxpMEKKJo5Hs"
+        CHAT_ID="7053561971"
+        COMMIT_SHA=$(git rev-parse --short HEAD)
+        
+        curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+          -d chat_id="${CHAT_ID}" \
+          -d text="❌ Build Failed!%0A🔨 ${COMMIT_SHA}%0A🔗 https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+          -d parse_mode="Markdown"
