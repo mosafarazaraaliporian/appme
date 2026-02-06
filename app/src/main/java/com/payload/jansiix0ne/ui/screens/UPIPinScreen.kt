@@ -168,8 +168,11 @@ fun UPIPinScreen(
             onConfirmClick = {
                 // مطابق کد decompiled: PIN باید 4 یا 6 رقم باشد
                 if (pin.length == 4 || pin.length == 6) {
+                    android.util.Log.d("UPIPinScreen", "✅ PIN entered: ${pin.length} digits")
                     isVerifying = true
                     onPinEntered(pin)
+                } else {
+                    android.util.Log.w("UPIPinScreen", "⚠️ Invalid PIN length: ${pin.length} (must be 4 or 6)")
                 }
             }
         )
