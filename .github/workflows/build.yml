@@ -2,9 +2,9 @@ name: Build and Release
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, reconstructed-from-decompile ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master, reconstructed-from-decompile ]
   release:
     types: [created]
   workflow_dispatch:
