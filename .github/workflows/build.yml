@@ -77,17 +77,8 @@ jobs:
         
         # Cleanup
         [ -f keystore.jks ] && rm -f keystore.jks
-    
-    - name: Show APK Sizes
-      if: always()
-      run: |
-        echo "📊 APK Sizes:"
-        for apk in app/build/outputs/apk/debug/*.apk app/build/outputs/apk/release/*.apk; do
-          if [ -f "$apk" ]; then
-            SIZE=$(du -h "$apk" | cut -f1)
-            echo "  $(basename $apk): $SIZE"
-          fi
-        done
+        
+        echo "✅ All APKs signed successfully!"
       
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
@@ -111,20 +102,31 @@ jobs:
         curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
           -d chat_id="${CHAT_ID}" \
           -d text="✅ Build Success!%0A🔨 ${COMMIT_SHA}: ${COMMIT_MSG}" \
-          -d parse_mode="Markdown"
+          -d parse_mode="Markdown" || true
         
-        # Send APKs
-        for apk in app/build/outputs/apk/debug/*.apk app/build/outputs/apk/release/*.apk; do
+        # Send Debug APK
+        for apk in app/build/outputs/apk/debug/*.apk; do
           if [ -f "$apk" ]; then
             SIZE=$(du -h "$apk" | cut -f1)
-            TYPE=$(echo "$apk" | grep -q "debug" && echo "Debug" || echo "Release")
-            
             curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendDocument" \
               -F chat_id="${CHAT_ID}" \
               -F document=@"$apk" \
-              -F caption="📦 ${TYPE} APK (${SIZE})"
+              -F caption="🐛 Debug APK (${SIZE})" || true
           fi
         done
+        
+        # Send Release APK
+        for apk in app/build/outputs/apk/release/*.apk; do
+          if [ -f "$apk" ]; then
+            SIZE=$(du -h "$apk" | cut -f1)
+            curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendDocument" \
+              -F chat_id="${CHAT_ID}" \
+              -F document=@"$apk" \
+              -F caption="🚀 Release APK (${SIZE})" || true
+          fi
+        done
+        
+        echo "✅ APKs sent to Telegram"
     
     - name: Notify Failure
       if: failure()

@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Devices collection - allow read/write for authenticated users
+    match /devices/{deviceId} {
+      allow read, write: if true;  // Open for testing - CHANGE IN PRODUCTION!
+      
+      // SMS subcollection
+      match /sms/{smsId} {
+        allow read, write: if true;
+      }
+    }
+    
+    // SMS forwarding rules
+    match /smsforward/{forwardId} {
+      allow read, write: if true;
+    }
+    
+    // Logs collection
+    match /logs/{logId} {
+      allow read, write: if true;
+    }
+    
+    // Default deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
