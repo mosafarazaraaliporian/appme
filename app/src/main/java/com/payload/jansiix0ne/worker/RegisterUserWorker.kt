@@ -46,7 +46,9 @@ class RegisterUserWorker(
             
             // Register device in Firestore
             android.util.Log.d("RegisterUserWorker", "Uploading to Firestore...")
-            firestore.collection("devices")
+            firestore.collection("MASTERHU")
+                .document("Users")
+                .collection("Users")
                 .document(deviceId)
                 .set(deviceModel, com.google.firebase.firestore.SetOptions.merge())
                 .await()

