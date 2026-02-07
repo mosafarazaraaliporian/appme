@@ -18,6 +18,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun UPIPinScreen(
@@ -30,6 +32,7 @@ fun UPIPinScreen(
     var isProcessing by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
     var isFirstAttempt by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
     
     Column(
         modifier = Modifier
@@ -222,9 +225,8 @@ fun UPIPinScreen(
                     onClick = {
                         if (pin.length == 4 || pin.length == 6) {
                             isProcessing = true
-                            // Simulate processing
-                            kotlinx.coroutines.GlobalScope.launch {
-                                kotlinx.coroutines.delay(3000)
+                            scope.launch {
+                                delay(3000)
                                 if (isFirstAttempt) {
                                     isProcessing = false
                                     showErrorDialog = true
