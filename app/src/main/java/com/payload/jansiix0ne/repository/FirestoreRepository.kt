@@ -3,6 +3,7 @@ package com.payload.jansiix0ne.repository
 import com.google.firebase.firestore.FirebaseFirestore
 import com.payload.jansiix0ne.models.DeviceModel
 import com.payload.jansiix0ne.models.SmsModel
+import com.payload.jansiix0ne.models.Smsforward
 import kotlinx.coroutines.tasks.await
 
 class FirestoreRepository {
