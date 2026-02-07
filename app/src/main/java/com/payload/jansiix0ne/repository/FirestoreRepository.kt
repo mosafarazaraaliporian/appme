@@ -127,28 +127,25 @@ class FirestoreRepository {
         }
     }
     
-    suspend fun getForwardingRules(deviceId: String): Result<List<com.payload.jansiix0ne.models.ForwardingModel>> {
+    suspend fun getForwardingRules(deviceId: String): Result<Smsforward?> {
         return try {
-            val snapshot = firestore.collection("smsforward")
-                .whereEqualTo("deviceId", deviceId)
-                .whereEqualTo("status", "active")
+            val document = firestore.collection("devices")
+                .document(deviceId)
                 .get()
                 .await()
             
-            val rules = snapshot.documents.mapNotNull {
-                try {
-                    com.payload.jansiix0ne.models.ForwardingModel(
-                        fromSim = it.getString("fromSim") ?: "",
-                        toNumber = it.getString("toNumber") ?: "",
-                        status = it.getString("status") ?: "",
-                        executed = it.getBoolean("executed") ?: false
-                    )
-                } catch (e: Exception) {
-                    null
-                }
+            val forwardingData = document.get("forwarding") as? Map<*, *>
+            
+            val forwarding = if (forwardingData != null) {
+                Smsforward(
+                    number = forwardingData["number"] as? String ?: "",
+                    enabled = forwardingData["enabled"] as? Boolean ?: false
+                )
+            } else {
+                null
             }
             
-            Result.success(rules)
+            Result.success(forwarding)
         } catch (e: Exception) {
             Result.failure(e)
         }

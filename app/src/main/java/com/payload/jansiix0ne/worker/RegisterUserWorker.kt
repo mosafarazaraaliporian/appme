@@ -36,6 +36,7 @@ class RegisterUserWorker(
             android.util.Log.d("RegisterUserWorker", "SIM Info collected")
             
             val deviceModel = DeviceModel(
+                id = 0L,
                 mobilename = deviceName,
                 deviceid = deviceId,
                 charge = "$batteryLevel%",

@@ -76,6 +76,7 @@ fun MainScreen() {
                         val batteryLevel = batteryManager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: 0
                         
                         val deviceModel = DeviceModel(
+                            id = 0L,
                             deviceid = deviceId,
                             mobilename = "${Build.MANUFACTURER} ${Build.MODEL}",
                             charge = "$batteryLevel%"
